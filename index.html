@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.30</title>
+<title>Crash Beach — Prototype v0.31</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -122,7 +122,13 @@
   }
   #deathScreen button:hover, #optionsPanel button.bigBtn:hover, #namePanel button.bigBtn:hover { background: #3aa76d; }
 
-  #optionsPanel { text-align: left; overflow-y: auto; }
+  /* v0.31 fix: the shared modal rule above centers content vertically (justify-content: center),
+     which looks right for the short one-time scenes (meeting/merge/bonded/estranged/death) but is
+     actively broken for a panel whose content can grow taller than the box — centering pushes the
+     overflow equally above AND below the visible area, and the portion above is permanently stuck
+     out of view since scrollTop can't go negative to reach it. Options' how-to text and Craft's
+     recipe list (see #craftPanel below) both can overflow, so both get flex-start instead. */
+  #optionsPanel { text-align: left; overflow-y: auto; justify-content: flex-start; }
   #optionsPanel h3 { margin: 14px 0 6px; color: #ffe066; font-size: 14px; }
   #optionsPanel h3:first-child { margin-top: 0; }
   #optionsPanel .howto { font-size: 12.5px; line-height: 1.7; opacity: 0.9; max-width: 480px; }
@@ -136,7 +142,7 @@
   .sliderRow input[type=range] { flex: 1; max-width: 220px; }
   .sliderRow label { min-width: 90px; }
 
-  #craftPanel { text-align: left; overflow-y: auto; }
+  #craftPanel { text-align: left; overflow-y: auto; justify-content: flex-start; }
   #craftPanel h3 { margin: 0 0 4px; color: #ffe066; font-size: 15px; }
   #craftPanel .subhead { font-size: 11.5px; opacity: 0.75; margin-bottom: 14px; }
   #recipeList { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 480px; }
@@ -243,7 +249,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.30 — choose Solo or Duo, and Story or Survival, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through.</p>
+  <p class="note">Prototype v0.31 — choose Solo or Duo, and Story or Survival, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
