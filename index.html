@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.32</title>
+<title>Crash Beach — Prototype v0.33</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -72,6 +72,7 @@
   #thirstBarFill { background: linear-gradient(90deg,#2b7fb8,#5ec8e8); width: 100%; }
   #hungerBarFill { background: linear-gradient(90deg,#7a5a2e,#c99a4b); width: 100%; }
   #trustBarFill { background: linear-gradient(90deg,#8a3b5a,#e0709a); width: 50%; }
+  #xpBarFill { background: linear-gradient(90deg,#5a7a2e,#a8d24b); width: 0%; }
   #rightHud { text-align: right; }
   #timer { font-size: 15px; font-weight: bold; margin-bottom: 4px; }
   #inventory {
@@ -287,7 +288,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.32 — choose Solo or Duo, and Story or Survival, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through.</p>
+  <p class="note">Prototype v0.33 — choose Solo or Duo, and Story or Survival, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -304,6 +305,10 @@
           <div class="statLabel"><span>HUNGER</span><span id="hungerValue">100/100</span></div>
           <div class="barBg"><div id="hungerBarFill" class="barFill"></div></div>
         </div>
+        <div class="statRow" id="levelRow">
+          <div class="statLabel"><span>LEVEL <span id="levelValue">1</span></span><span id="xpValue">0/80 XP</span></div>
+          <div class="barBg"><div id="xpBarFill" class="barFill"></div></div>
+        </div>
         <div class="statRow" id="trustRow" style="display:none">
           <div class="statLabel"><span>TRUST · WREN</span><span id="trustValue">50/100</span></div>
           <div class="barBg"><div id="trustBarFill" class="barFill"></div></div>
@@ -312,6 +317,7 @@
       <div id="rightHud">
         <div id="timer">Survived: 0:00</div>
         <div id="inventory">
+          <div>🛠️ Craft Lv: <span id="invCraftLevel">1</span></div>
           <div>🔱 Spear: <span id="invSpear">3/3</span></div>
           <div>🪵 Wood: <span id="invWood">0</span></div>
           <div>🥥 Coconut: <span id="invCoconut">0</span></div>
@@ -358,7 +364,7 @@
       <h3>How to play</h3>
       <div class="howto">
         <b>Move</b> — WASD / Arrow keys, or drag the left circle.<br>
-        <b>Fight</b> — no timing or reflexes needed anymore. When a predator closes in, the screen shifts into its own battle scene with a simple menu: <b>Attack</b> (costs 1 spear durability, always lands), <b>Defend</b> (cuts the predator's next hit), <b>Item</b> (use a Bandage/food/tablet from your pack without leaving the fight), <b>Flee</b> (try to break off — chance of success, and a miss gives it a free hit), and <b>Spare</b> (once it's weakened enough, let it go clean — no kill, no drops, but the island notices mercy). Fight it down to nothing instead and it drops meat, bone, and pelt. Your spear has limited durability and can break mid-fight — Attack turns off until you repair it (Item/Flee/Defend still work). Three kinds prowl the beach now — a boar, wild dogs, and a big cat — each with its own toughness, bite, and how hard it is to shake off with Flee.<br>
+        <b>Fight</b> — no timing or reflexes needed anymore. When a predator closes in, the screen shifts into its own battle scene with a simple menu: <b>Attack</b> (costs 1 spear durability, always lands), <b>Defend</b> (cuts the predator's next hit), <b>Item</b> (use a Bandage/food/tablet from your pack without leaving the fight), <b>Flee</b> (try to break off — chance of success, and a miss gives it a free hit), and <b>Spare</b> (once it's weakened enough, let it go clean — no kill, no drops, but the island notices mercy). Fight it down to nothing instead and it drops meat, bone, and pelt. Your spear has limited durability and can break mid-fight — Attack turns off until you repair it (Item/Flee/Defend still work). Three kinds prowl the beach from the start — a boar, wild dogs, and a big cat — each with its own toughness, bite, and how hard it is to shake off with Flee. A fourth, the alpha wolf — tougher than all three — starts showing up once you've leveled up enough (see Leveling below).<br>
         <b>Go Hunting</b> — H or the red button, anywhere a predator could spawn (Crash Beach, Jungle Interior, the Second Island) and you're not already in a fight. Instead of waiting for something to find you, you go looking for it. <i>(Duo only)</i> Bring <span class="dyn-wrenName">Wren</span> along and, past a real level of trust, she'll wade into the fight at your side — the more she trusts you, the harder she hits.<br>
         <b>Interact</b> — E or the green button. Drinks at a water source, forages coconuts, catches fish, gathers wood or reeds, eats, or rests at your shelter — whichever is nearest and relevant.<br>
         <b>Craft</b> — C or the purple button opens the crafting library: browse every known recipe, see what it costs, and make it if you have the goods. Nothing crafts automatically anymore. A kill's spoils go further at the fire: cook meat for real food, lash a bone onto your spear for extra durability, or stitch a pelt into a cloak that cuts your rest cooldown.<br>
@@ -372,6 +378,7 @@
         <b><span class="dyn-wrenName">Wren</span></b> <i>(Duo only)</i> — someone else is out here. Walk up to her at her camp and you'll get one shot at a first impression — approach openly, stay cautious, or hold back — and it sets where Trust starts. Talk to her (E, on a cooldown) any time after that to build it further — high enough trust means real sharing, not just conversation. Get it high enough and she'll move in with you at <span class="dyn-campName">Sean's Camp</span> for good. Trust isn't one-directional, and moving in together doesn't freeze it in place — leave it neglected too long (even after she's moved in) and it drifts down on its own. Let it fall far enough and she turns cold: she'll avoid you, take from your stores when you're not looking, and any conversation is a guarded one — until trust climbs back out of it. Push either extreme far enough and something bigger happens: keep trust near its peak after she's moved in and the relationship deepens for good, with real day-to-day benefits; let it bottom out completely and she leaves for good this run, taking her things back to her old camp. She's no longer just along for the ride, either — whether she follows you into somewhere dangerous is her own call, more likely the more she trusts you, and she draws real food and water from your shared stockpile rather than living on nothing. She can get hurt out there. She won't die from it, but a bad enough scrape sends her running for home to recover, and she won't be at your side again until she's actually made it back.<br>
         <b>Survive</b> — keep Health, Thirst, and Hunger above zero. There's no rescue ending — the whole game is how long you can last. Death is permanent — a new run starts from scratch.<br>
         <b>The Long Haul</b> — the island doesn't stay static. The longer a run goes, the less any single food or limited water source (canteen, purification tablets) restores — drinking straight from a spring or stream always stays a full restore, so you're never truly stuck, but cooking your kills matters more and more (it's the best hunger restore in the game). Predators also spawn more often and lean more dangerous as the days add up, and gathering spots take longer to refill. Applies the same way in Solo and Duo.<br>
+        <b>Leveling</b> — a predator kill, a full day survived, crafting, and gathering all earn real Player XP (shown top-left, next to your other stats). Leveling up hits harder with Attack, eases your hunger/thirst drain a little, and at level 3 makes Flee noticeably more reliable. At level 5, the alpha wolf — bigger, tougher, and harder to shake off than anything else out here — starts showing up in the mix, and every predator you meet from then on hits and holds up a little harder too, not just the wolf. Crafting and gathering separately feed a second, Crafting Level (shown in your inventory list): as it climbs, the effective heal, thirst, and hunger restored by anything you craft or repair — Bandages, Hone Spear, Purification Tablets, Cooked Meat — quietly improves. Both tracks reset with every new run.<br>
         <b>Surge Events</b> — every so often, on top of that steady climb, something real moves through: a storm, a predator swarm, or a dry spell, each with its own visible warning and its own way of making things harder while it lasts. They pass on their own — the island doesn't stay in one of them forever — but they're worth paying attention to, not waiting out blindly.<br>
         <b>The Island</b> — not everything out here has an obvious cause. Long enough, and you might start to wonder.<br>
         <b>Tone</b> — set at the start, changeable anytime below. Mild keeps things gentle, Standard is the default, Salty gives the writing real bite. Doesn't touch difficulty, just the words.
@@ -524,6 +531,10 @@ const invScrapEl = document.getElementById('invScrap');
 const invSalvageEl = document.getElementById('invSalvage');
 const invTabletsEl = document.getElementById('invTablets');
 const invIronwoodEl = document.getElementById('invIronwood');
+const invCraftLevelEl = document.getElementById('invCraftLevel');
+const levelValueEl = document.getElementById('levelValue');
+const xpValueEl = document.getElementById('xpValue');
+const xpBarFillEl = document.getElementById('xpBarFill');
 const invCanteenEl = document.getElementById('invCanteen');
 const canteenRow = document.getElementById('canteenRow');
 const raftRow = document.getElementById('raftRow');
@@ -555,6 +566,10 @@ const DEATH_NARRATIVES = {
       "It's fast, and quiet about it, and you understand — a little too late — why you never heard it coming.",
       "One moment of stillness is all it needed. It used it well."
     ],
+    wolf: [
+      "It was always going to be bigger than the others. You just didn't find that out until it mattered.",
+      "There's no outrunning this one, and some part of you knew that the moment it stepped out of the treeline."
+    ],
     dehydration: [
       "The ocean surrounds you on every side, and none of it is any help. Thirst wins, quietly, in the end.",
       "You meant to reach the stream. You didn't make it in time."
@@ -582,6 +597,10 @@ const DEATH_NARRATIVES = {
       "It doesn't charge like the boar does — no warning, no telegraph you can read. Just a weight, suddenly, and then the understanding that you were never actually being hunted from the front.",
       "You spend so long watching the treeline that you forget cats don't announce themselves from the treeline. The mistake is educational, briefly, and then it isn't anything at all."
     ],
+    wolf: [
+      "You'd faced down a boar, dogs, the cat — all of it, and come out the other side. This is the one the island had been saving, and it doesn't waste the moment.",
+      "It's bigger than anything else that's come out of that treeline, and stronger than your spear arm has an answer for. You find that out in the worst possible order."
+    ],
     dehydration: [
       "The ocean stretches out in every direction — an entire horizon of water, and not one mouthful of it yours to drink. Your throat closed around nothing hours ago. Somewhere past the second day without, you stop remembering why that felt like it should be funny.",
       "You remember the stream. Four hundred easy yards, and you decided it could wait. It couldn't. By the time thirst stops feeling like a want and starts feeling like the only thing left, there's no version of you still capable of walking there."
@@ -608,6 +627,10 @@ const DEATH_NARRATIVES = {
     cat: [
       "It doesn't grudge-charge like the boar — it just waits, and picks its moment, and you find out the hard way that patience beats bravado every single time.",
       "You never even got the spear up. It didn't need you to see it coming, and it made sure you didn't."
+    ],
+    wolf: [
+      "Bigger, meaner, and smarter than every other damn thing that's come at you on this island, and it knew exactly how to use all three.",
+      "You'd gotten cocky — boar, dogs, the cat, all of it behind you. This one doesn't care what you've already survived."
     ],
     dehydration: [
       "An ocean's worth of water in every direction and not a mouthful of it fit to drink — that's the joke the island's been playing on you since day one, and it finally lands.",
@@ -648,6 +671,7 @@ const DEATH_LABELS = {
   boar: 'Gored by the boar.',
   dog: 'Torn apart by the wild dogs.',
   cat: 'Killed by the big cat.',
+  wolf: 'Killed by the alpha wolf.',
   dehydration: 'Died of dehydration.',
   starvation: 'Starved to death.',
   combo: 'Succumbed to hunger and thirst.',
@@ -1173,6 +1197,18 @@ const PREDATOR_TYPES = {
     approachSpeed: 85, engageRange: 160, telegraphMs: 550, lungeMs: 300,
     hitRadius: 36, hitsToFlee: 4, damage: 28, fleeSpeed: 280, weight: 2,
     drops: { meat: [2, 3], bone: [1, 2], pelt: [1, 1] }
+  },
+  // Alpha Wolf (v0.33) — the leveling system's one new predator type, gated behind WOLF_UNLOCK_LEVEL
+  // (see predatorSpeciesWeights() below) rather than several new tiers: a single, disclosed scope
+  // call to keep the flavor-text commitment (spawn/flee line, three death narratives, a label) and
+  // the balance surface finite, the same call this project already made for wild dogs (v0.18) and
+  // the single predator slot (v0.27). Tougher than every existing type on every axis that matters —
+  // most hits to flee, hardest counter, and the only predator harder to shake once Flee is chosen.
+  wolf: {
+    label: 'alpha wolf', color: '#4a4a55', size: { rx: 30, ry: 18 },
+    approachSpeed: 90, engageRange: 150, telegraphMs: 600, lungeMs: 280,
+    hitRadius: 34, hitsToFlee: 5, damage: 34, fleeSpeed: 240, weight: 1.2,
+    drops: { meat: [2, 3], bone: [1, 2], pelt: [1, 2] }
   }
 };
 
@@ -1548,19 +1584,21 @@ const RECIPES = [
   },
   {
     id: 'honeSpear', name: 'Hone Spear', icon: '🪨',
-    desc: 'Grind your spear point against stone from the ridge. A quick partial repair — cheaper than rebuilding it from wood, but it only restores ' + HONE_SPEAR_AMOUNT + ' durability.',
+    desc: 'Grind your spear point against stone from the ridge. A quick partial repair — cheaper than rebuilding it from wood, but it only restores ' + HONE_SPEAR_AMOUNT + ' durability at crafting level 1 (more as your crafting level rises).',
     cost: { stone: STONE_PER_HONE },
     canCraft: () => player.spearDurability > 0 && player.spearDurability < spearMaxDurability(),
     lockedReason: () => player.spearDurability <= 0 ? 'Your spear is broken — needs a full Spear craft instead.' : 'Your spear is already at full durability.',
-    apply: () => { player.spearDurability = Math.min(spearMaxDurability(), player.spearDurability + HONE_SPEAR_AMOUNT); }
+    // v0.33 — crafting-level quality bonus (see craftingQualityMult()); rounded since durability is
+    // displayed as a plain integer everywhere else in this file.
+    apply: () => { player.spearDurability = Math.min(spearMaxDurability(), player.spearDurability + Math.round(HONE_SPEAR_AMOUNT * craftingQualityMult())); }
   },
   {
     id: 'bandage', name: 'Bandage', icon: '🌿',
-    desc: 'Wrap a wound with jungle herbs. Heals ' + BANDAGE_HEAL_AMOUNT + ' health on the spot — less than resting at a shelter, but it works anywhere.',
+    desc: 'Wrap a wound with jungle herbs. Heals ' + BANDAGE_HEAL_AMOUNT + ' health on the spot — less than resting at a shelter, but it works anywhere. Quality scales with your crafting level.',
     cost: { herb: HERB_PER_BANDAGE },
     canCraft: () => player.health < 100,
     lockedReason: () => player.health >= 100 ? 'Already at full health.' : null,
-    apply: () => { player.health = Math.min(100, player.health + BANDAGE_HEAL_AMOUNT); }
+    apply: () => { player.health = Math.min(100, player.health + BANDAGE_HEAL_AMOUNT * craftingQualityMult()); }
   },
   {
     id: 'tablets', name: 'Purification Tablets', icon: '💊',
@@ -1605,6 +1643,10 @@ function attemptCraft(id) {
   showBanner('Crafted a ' + recipe.name + '.', 1700);
   renderCraftPanel();
   updateHud();
+  // v0.33 — crafting feeds both XP tracks: a small amount toward general player leveling, a larger
+  // amount toward the crafting-only quality track (see the PLAYER LEVELING section).
+  awardPlayerXp(XP_PLAYER_CRAFT);
+  awardCraftingXp(XP_CRAFTING_CRAFT);
 }
 
 function renderCraftPanel() {
@@ -1644,6 +1686,11 @@ function renderCraftPanel() {
 }
 
 let player, predator, wren, trust, water, palm, gatherables, fishSpot, inventory, elapsed, encounterMsgTimer, dead, decorations, stats, currentScreen, screenData, shelter, tide, tideTimer, surge;
+// v0.33 — the last in-game day player leveling awarded day-survival XP for (see awardPlayerXp()'s
+// caller in updateSurvivalStats()). currentDay() deliberately keeps no state of its own (see its
+// own comment above), so this is the one place that remembers "have we already paid out for the
+// day we're currently in."
+let lastDaySeen;
 let trustTellTimer; // v0.29 fix (playtest finding #4) — mirrors encounterMsgTimer's shape, just for the tint class instead of the text itself
 
 function buildScreens() {
@@ -1894,7 +1941,10 @@ function resetGame() {
     spearUpgraded: false, spearReinforced: false, spearMastered: false, hasPeltCloak: false, hasRaft: false,
     // v0.32 — true only for the round just chosen inside the battle scene; halves the predator's
     // counter-attack damage that round, then cleared. See battleResolveRound().
-    battleDefending: false
+    battleDefending: false,
+    // v0.33 — leveling: two independent tracks, both starting fresh at level 1 with 0 banked XP.
+    // See the PLAYER LEVELING section for what level/craftingLevel actually change.
+    level: 1, xp: 0, craftingLevel: 1, craftingXp: 0
   };
   predator = {
     active: false, type: null, cfg: null, state: 'idle', x: 0, y: 0,
@@ -1951,6 +2001,7 @@ function resetGame() {
   };
   islandWrathDeathTimer = 0;
   elapsed = 0;
+  lastDaySeen = 1; // v0.33 — matches currentDay()'s own floor at elapsed=0
   dead = false;
   interactRequested = false;
   bannerEl.style.opacity = 0;
@@ -2347,6 +2398,11 @@ function processInteract() {
       if (bonus) inventory[c.pile.resource] += bonus;
       sfx.forage();
       showBanner('You gather ' + c.pile.resource + '. (' + inventory[c.pile.resource] + ' ' + c.pile.resource + ')' + (bonus ? ' — a lucky find, an extra ' + c.pile.resource + '!' : ''), 1500);
+      // v0.33 — a small amount toward both XP tracks per successful pull (see the PLAYER LEVELING
+      // section) — deliberately not awarded on the trickHollow miss branch above, since nothing was
+      // actually gathered there.
+      awardPlayerXp(XP_PLAYER_GATHER);
+      awardCraftingXp(XP_CRAFTING_GATHER);
     }
   } else if (c.type === 'catch_fish') {
     const alreadyStocked = (inventory.fish || 0) >= ISLAND_TRUST_OVERHARVEST_STOCKPILE_THRESHOLD;
@@ -2357,6 +2413,8 @@ function processInteract() {
     if (fishBonus) inventory.fish += fishBonus;
     sfx.forage();
     showBanner('You catch a fish. (' + inventory.fish + ' in your pack)' + (fishBonus ? ' — a second one follows!' : ''), 1500);
+    awardPlayerXp(XP_PLAYER_GATHER);
+    awardCraftingXp(XP_CRAFTING_GATHER);
   } else if (c.type === 'forage') {
     const alreadyStocked = (inventory.coconut || 0) >= ISLAND_TRUST_OVERHARVEST_STOCKPILE_THRESHOLD;
     palm.coconuts -= 1;
@@ -2366,6 +2424,8 @@ function processInteract() {
     if (coconutBonus) inventory.coconut += coconutBonus;
     sfx.forage();
     showBanner('You pick a coconut. (' + inventory.coconut + ' in your pack)' + (coconutBonus ? ' — a second one tumbles down!' : ''), 1500);
+    awardPlayerXp(XP_PLAYER_GATHER);
+    awardCraftingXp(XP_CRAFTING_GATHER);
   } else if (c.type === 'drink_canteen') {
     player.thirst = Math.min(100, player.thirst + player.canteenWater * eff);
     player.canteenWater = 0;
@@ -2373,7 +2433,8 @@ function processInteract() {
     showBanner('You drink from your canteen.', 1500);
   } else if (c.type === 'use_tablet') {
     inventory.tablets -= 1;
-    player.thirst = Math.min(100, player.thirst + TABLET_THIRST_AMOUNT * eff);
+    // v0.33 — crafting-level quality bonus, same as the Bandage/Hone Spear recipes above.
+    player.thirst = Math.min(100, player.thirst + TABLET_THIRST_AMOUNT * eff * craftingQualityMult());
     sfx.drink();
     showBanner('You drop a purification tablet in your mouth and chew. Thirst eased — no water source needed.', 1900);
   } else if (c.type === 'eat_fish') {
@@ -2389,7 +2450,8 @@ function processInteract() {
     showBanner('You crack open a coconut and eat. Hunger eased. (+1 shell)', 1900);
   } else if (c.type === 'eat_cooked_meat') {
     inventory.cookedMeat -= 1;
-    player.hunger = Math.min(100, player.hunger + COOKED_MEAT_EAT_AMOUNT * eff);
+    // v0.33 — crafting-level quality bonus, same as the Bandage/Hone Spear recipes above.
+    player.hunger = Math.min(100, player.hunger + COOKED_MEAT_EAT_AMOUNT * eff * craftingQualityMult());
     sfx.eat();
     showBanner('You eat the cooked meat. Real food — hunger eased a lot.', 1900);
   } else if (c.type === 'eat_meat') {
@@ -2535,8 +2597,19 @@ function endSurge() {
 }
 
 function updateSurvivalStats(dt) {
-  player.thirst = Math.max(0, player.thirst - THIRST_DRAIN_PER_SEC * dt);
-  player.hunger = Math.max(0, player.hunger - HUNGER_DRAIN_PER_SEC * dt);
+  // v0.33 — day-survival XP: currentDay() deliberately keeps no state of its own (see its comment
+  // above), so this is the one place, run unconditionally every frame, that remembers whether the
+  // current day has already been paid out for.
+  const dayNow = currentDay();
+  if (dayNow > lastDaySeen) {
+    lastDaySeen = dayNow;
+    awardPlayerXp(XP_PLAYER_DAY_SURVIVED);
+  }
+  // v0.33 — playerLevelSurvivalDrainMult() composes onto the drain rate the same way every other
+  // multiplier in this function composes onto its own timer/rate below.
+  const survivalMult = playerLevelSurvivalDrainMult();
+  player.thirst = Math.max(0, player.thirst - THIRST_DRAIN_PER_SEC * survivalMult * dt);
+  player.hunger = Math.max(0, player.hunger - HUNGER_DRAIN_PER_SEC * survivalMult * dt);
 
   let dmg = 0;
   if (player.thirst <= 0) dmg += DEHYDRATION_DPS * dt;
@@ -2887,6 +2960,109 @@ function updateIslandWrath(dt) {
   }
 }
 
+// ================= PLAYER LEVELING (v0.33) =================
+// Two independent XP tracks, both stored on `player` (see resetGame()) and both reset fresh every
+// run — nothing here persists across runs, matching every other piece of run state in this
+// prototype (the planned save system is its own later phase, not this one). Deliberately bounded
+// rather than open-ended: capped levels keep the balance surface, and the flavor-text commitment
+// for the one new predator type below, finite and actually tunable — the same disclosed-
+// simplification call this project has made before (v0.18's wild dogs as one creature, v0.27's
+// single predator slot).
+//
+// Player Level (level/xp): earned from every meaningful survival action — a predator kill, a day
+// survived, crafting something, or a single gather/fish/forage pull — and improves the player
+// across all three axes: combat (a flat Attack damage bonus, see playerLevelAttackBonus()),
+// survival (a reduced hunger/thirst drain rate, see playerLevelSurvivalDrainMult() — deliberately
+// NOT a higher health/thirst/hunger cap, since every stat clamp in this file already assumes 100 is
+// the ceiling and changing that would ripple through code far outside this feature's scope), and
+// abilities (Flee becomes more reliable starting at level 3, and the Alpha Wolf — a new, tougher
+// predator — starts entering the spawn pool at level 5; see PREDATOR_TYPES.wolf above and
+// predatorSpeciesWeights()). World scaling rides the same number: existing predators get tougher
+// too as the player levels, via predatorLevelScaleMult() stacked multiplicatively on top of the
+// existing day-based escalation (predatorCooldownMult/predatorSpeciesWeights).
+//
+// Crafting Level (craftingLevel/craftingXp): a separate track fed only by crafting and gathering,
+// on its own shorter curve. Rather than a second, duplicate tier of every recipe (doubling the
+// crafting UI and the balance surface for comparatively little payoff), it's a straight quality
+// multiplier — craftingQualityMult() — applied to the handful of items with an immediate numeric
+// effect: Bandage's heal, Hone Spear's partial repair, Purification Tablets' thirst relief, and
+// Cooked Meat's hunger restore (both crafted and, for the meat/tablets, consumed later — see
+// processInteract() and battleItems()). Permanent one-time upgrades (Bone/Reinforced/Ironwood
+// Spear, Pelt Cloak, Canteen, Raft) are untouched — "quality" doesn't mean anything additional for
+// something already built once and kept forever.
+const MAX_PLAYER_LEVEL = 10;
+const MAX_CRAFTING_LEVEL = 5;
+const WOLF_UNLOCK_LEVEL = 5;
+const PLAYER_XP_BASE = 80;
+const PLAYER_XP_GROWTH = 1.4;
+const CRAFTING_XP_BASE = 40;
+const CRAFTING_XP_GROWTH = 1.5;
+
+// XP awarded per source. A predator kill's XP scales with its own hitsToFlee — the rough "how
+// tough is this thing" number every PREDATOR_TYPES entry already carries — so the Alpha Wolf is
+// worth meaningfully more than a boar without a second, separate tuning table to maintain.
+const XP_PLAYER_PREDATOR_KILL_BASE = 15;
+const XP_PLAYER_PREDATOR_KILL_PER_TOUGHNESS = 5;
+const XP_PLAYER_DAY_SURVIVED = 40;
+const XP_PLAYER_CRAFT = 6;
+const XP_PLAYER_GATHER = 1;
+const XP_CRAFTING_CRAFT = 12;
+const XP_CRAFTING_GATHER = 2;
+
+function xpToNextPlayerLevel(level) {
+  return Math.round(PLAYER_XP_BASE * Math.pow(PLAYER_XP_GROWTH, level - 1));
+}
+function xpToNextCraftingLevel(level) {
+  return Math.round(CRAFTING_XP_BASE * Math.pow(CRAFTING_XP_GROWTH, level - 1));
+}
+
+// Both award functions share the same shape: bank the XP, then roll level-ups in a loop (so one
+// big award landing right on a threshold — a tough kill at the edge of leveling — can clear more
+// than one level in a single call), each one popping its own banner so a level-up is never silent.
+// Capped at MAX_*_LEVEL by simply no longer banking XP once there — nothing left to spend it on.
+function awardPlayerXp(amount) {
+  if (player.level >= MAX_PLAYER_LEVEL) return;
+  player.xp += amount;
+  while (player.level < MAX_PLAYER_LEVEL && player.xp >= xpToNextPlayerLevel(player.level)) {
+    player.xp -= xpToNextPlayerLevel(player.level);
+    player.level++;
+    sfx.craft();
+    showBanner('Level up! You are now level ' + player.level + '.' + levelUpUnlockLine(player.level), 3200);
+  }
+  if (player.level >= MAX_PLAYER_LEVEL) player.xp = 0;
+  updateHud();
+}
+function awardCraftingXp(amount) {
+  if (player.craftingLevel >= MAX_CRAFTING_LEVEL) return;
+  player.craftingXp += amount;
+  while (player.craftingLevel < MAX_CRAFTING_LEVEL && player.craftingXp >= xpToNextCraftingLevel(player.craftingLevel)) {
+    player.craftingXp -= xpToNextCraftingLevel(player.craftingLevel);
+    player.craftingLevel++;
+    sfx.craft();
+    showBanner('Crafting level up! Your work is now level ' + player.craftingLevel + ' quality.', 3000);
+  }
+  if (player.craftingLevel >= MAX_CRAFTING_LEVEL) player.craftingXp = 0;
+  updateHud();
+}
+// A one-line addendum to the level-up banner at the two milestones that change something beyond
+// raw numbers, so the player learns why those levels matter without a separate popup explaining it.
+function levelUpUnlockLine(level) {
+  if (level === 3) return ' Flee is more reliable now.';
+  if (level === WOLF_UNLOCK_LEVEL) return ' Something bigger is hunting out here now.';
+  return '';
+}
+
+// ---- Combat/survival/ability effects — read live off player.level wherever they apply ----
+function playerLevelAttackBonus() { return Math.floor((player.level - 1) / 2); } // +1 every 2 levels, +5 at level 10
+function playerLevelSurvivalDrainMult() { return 1 - Math.min(0.3, (player.level - 1) * 0.033); } // up to ~30% slower drain at level 10
+function playerLevelFleeBonus() { return player.level >= 3 ? 0.15 : 0; }
+function craftingQualityMult() { return 1 + (player.craftingLevel - 1) * 0.08; } // up to +32% at crafting level 5
+
+// World scaling — existing predators get tougher as the player levels, stacked multiplicatively on
+// top of the existing day-based escalation rather than replacing it (same composition pattern
+// campKeeperMult/scarcityMult/dryMult already use in updateSurvivalStats()).
+function predatorLevelScaleMult() { return 1 + (player.level - 1) * 0.06; } // up to ~1.54x at level 10
+
 let lastTime = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - lastTime) / 1000);
@@ -2970,6 +3146,9 @@ const PREDATOR_SPAWN_LINES = {
   boar: 'Something big is moving in the treeline...',
   dog: 'Low growls circle somewhere in the brush — more than one throat, from the sound of it.',
   cat: 'Something slips along a low branch, unhurried, and watching.',
+  // v0.33 — Alpha Wolf: the one line that should make clear, before the battle panel even opens,
+  // that this isn't one of the three you've already learned to read.
+  wolf: 'The treeline goes dead silent — and then something far bigger than a dog steps out of it.',
 };
 const PREDATOR_FLEE_LINES = {
   boar: [
@@ -2983,6 +3162,10 @@ const PREDATOR_FLEE_LINES = {
   cat: [
     'It hisses once and melts back into the shadows.',
     'You held your ground. It slinks off, unhurried, watching you the whole way.'
+  ],
+  wolf: [
+    'It holds your eyes a moment longer than the others ever did, then turns and stalks back into the treeline — not scared, just done for now.',
+    "You held your ground and, somehow, it's enough. It backs off a full length at a time, never once looking away until the trees take it."
   ],
 };
 function predatorFleeLine(type) {
@@ -3041,6 +3224,10 @@ function predatorSpeciesWeights(day) {
     boar: Math.max(1.5, PREDATOR_TYPES.boar.weight * (1 - shift)),
     dog: PREDATOR_TYPES.dog.weight * (1 + shift),
     cat: PREDATOR_TYPES.cat.weight * (1 + shift),
+    // v0.33 — Alpha Wolf only enters the pool once the player has reached WOLF_UNLOCK_LEVEL; a
+    // weight of 0 below that means pickPredatorType() (which just iterates PREDATOR_TYPES' own
+    // keys) never actually rolls it, rather than needing a second gate duplicated there too.
+    wolf: player.level >= WOLF_UNLOCK_LEVEL ? PREDATOR_TYPES.wolf.weight * (1 + shift) : 0,
   };
 }
 
@@ -3102,6 +3289,9 @@ function killPredator() {
   if (pelt) dropParts.push(pelt + ' pelt');
   showBanner(predatorKillLine(contentTier, cfg.label) + (dropParts.length ? ' (+' + dropParts.join(', ') + ')' : ''), 3200);
   updateHud();
+  // v0.33 — combat XP: scales with the predator's own hitsToFlee (see the PLAYER LEVELING section)
+  // so the Alpha Wolf is worth clearly more than a boar without a second tuning table.
+  awardPlayerXp(XP_PLAYER_PREDATOR_KILL_BASE + cfg.hitsToFlee * XP_PLAYER_PREDATOR_KILL_PER_TOUGHNESS);
 }
 
 function updatePredator(dt) {
@@ -3232,11 +3422,15 @@ function playerAttackDamage() {
   if (player.spearUpgraded) dmg += 2;
   if (player.spearReinforced) dmg += 2;
   if (player.spearMastered) dmg += 2;
+  dmg += playerLevelAttackBonus(); // v0.33 — leveling's combat bonus, see PLAYER LEVELING section
   return dmg;
 }
 
 function battleFleeChance(cfg) {
-  return Math.min(0.7, Math.max(0.35, 0.75 - (cfg.fleeSpeed - 200) / 400));
+  const base = Math.min(0.7, Math.max(0.35, 0.75 - (cfg.fleeSpeed - 200) / 400));
+  // v0.33 — leveling's Flee-ability unlock at level 3 (see playerLevelFleeBonus()); the cap moves
+  // up alongside it so the bonus can actually be felt against a slow-fleeSpeed predator too.
+  return Math.min(0.85, base + playerLevelFleeBonus());
 }
 
 function addBattleLog(text) {
@@ -3261,17 +3455,22 @@ function updateBattleUI() {
 
 function enterBattle() {
   const cfg = predator.cfg;
-  predator.battleMaxHp = cfg.hitsToFlee * 12;
+  // v0.33 — world scaling: existing predators get tougher as the player levels (see
+  // predatorLevelScaleMult() in the PLAYER LEVELING section), stacked on top of this same base.
+  predator.battleMaxHp = Math.round(cfg.hitsToFlee * 12 * predatorLevelScaleMult());
   predator.battleHp = predator.battleMaxHp;
   player.battleDefending = false;
   activeOverlay = 'battle';
   paused = true;
-  battleTitleEl.textContent = 'A ' + cfg.label + ' blocks your path!';
+  // v0.33 — Alpha Wolf's label starts with a vowel sound ("alpha"), so the old hardcoded "A "
+  // prefix (fine for boar/dog/cat) needed a real article check to still read correctly.
+  const article = /^[aeiou]/i.test(cfg.label) ? 'An ' : 'A ';
+  battleTitleEl.textContent = article + cfg.label + ' blocks your path!';
   battlePlayerNameEl.textContent = playerName;
   battleEnemyNameEl.textContent = cfg.label.replace(/\b\w/g, c => c.toUpperCase());
   battleLogEl.innerHTML = '';
   battleCloseItemMenu();
-  addBattleLog(PREDATOR_SPAWN_LINES[predator.type] || ('A ' + cfg.label + ' squares off with you!'));
+  addBattleLog(PREDATOR_SPAWN_LINES[predator.type] || (article + cfg.label + ' squares off with you!'));
   // v0.32 — reuses the same one-time, per-browser-session tutorial flag the old real-time
   // telegraph cue used (see v0.29's "Known bugs fixed") — the mechanic it explained has moved
   // into this scene, so the flag now fires here instead.
@@ -3323,7 +3522,9 @@ function battleWrenAssist() {
 }
 
 function battlePredatorCounter(cfg) {
-  let dmg = cfg.damage;
+  // v0.33 — world scaling: same predatorLevelScaleMult() enterBattle() used for max HP, applied
+  // here to the counter-attack's damage too, so a higher-level run's fights hit harder end to end.
+  let dmg = Math.round(cfg.damage * predatorLevelScaleMult());
   if (player.battleDefending) dmg = Math.round(dmg * 0.45);
   player.battleDefending = false;
   player.health -= dmg;
@@ -3375,17 +3576,24 @@ function battleDefend() {
 function battleItems() {
   const eff = foodEfficiency(currentDay());
   const items = [];
+  // v0.33 — same crafting-level quality bonus as processInteract()'s use_tablet/eat_cooked_meat
+  // branches and the Bandage recipe; computed once so the displayed amount and the applied amount
+  // never drift apart.
+  const qMult = craftingQualityMult();
   if ((inventory.herb || 0) >= HERB_PER_BANDAGE && player.health < 100) {
-    items.push({ icon: '🌿', label: 'Bandage', desc: 'Heal ' + BANDAGE_HEAL_AMOUNT + ' HP (uses ' + HERB_PER_BANDAGE + ' herb)',
-      apply: () => { inventory.herb -= HERB_PER_BANDAGE; player.health = Math.min(100, player.health + BANDAGE_HEAL_AMOUNT); return 'You wrap the wound. +' + BANDAGE_HEAL_AMOUNT + ' health.'; } });
+    const healAmt = Math.round(BANDAGE_HEAL_AMOUNT * qMult);
+    items.push({ icon: '🌿', label: 'Bandage', desc: 'Heal ' + healAmt + ' HP (uses ' + HERB_PER_BANDAGE + ' herb)',
+      apply: () => { inventory.herb -= HERB_PER_BANDAGE; player.health = Math.min(100, player.health + healAmt); return 'You wrap the wound. +' + healAmt + ' health.'; } });
   }
   if ((inventory.tablets || 0) > 0 && player.thirst < 99) {
-    items.push({ icon: '💊', label: 'Purification Tablet', desc: 'Ease thirst ' + TABLET_THIRST_AMOUNT,
-      apply: () => { inventory.tablets -= 1; player.thirst = Math.min(100, player.thirst + TABLET_THIRST_AMOUNT * eff); return 'You chew a tablet. Thirst eased.'; } });
+    const thirstAmt = Math.round(TABLET_THIRST_AMOUNT * qMult);
+    items.push({ icon: '💊', label: 'Purification Tablet', desc: 'Ease thirst ' + thirstAmt,
+      apply: () => { inventory.tablets -= 1; player.thirst = Math.min(100, player.thirst + thirstAmt * eff); return 'You chew a tablet. Thirst eased.'; } });
   }
   if ((inventory.cookedMeat || 0) > 0 && player.hunger < 99) {
-    items.push({ icon: '🍖', label: 'Cooked Meat', desc: 'Restore ' + COOKED_MEAT_EAT_AMOUNT + ' hunger',
-      apply: () => { inventory.cookedMeat -= 1; player.hunger = Math.min(100, player.hunger + COOKED_MEAT_EAT_AMOUNT * eff); return 'You eat the cooked meat. Hunger eased.'; } });
+    const meatAmt = Math.round(COOKED_MEAT_EAT_AMOUNT * qMult);
+    items.push({ icon: '🍖', label: 'Cooked Meat', desc: 'Restore ' + meatAmt + ' hunger',
+      apply: () => { inventory.cookedMeat -= 1; player.hunger = Math.min(100, player.hunger + meatAmt * eff); return 'You eat the cooked meat. Hunger eased.'; } });
   }
   if ((inventory.meat || 0) > 0 && player.hunger < 99) {
     items.push({ icon: '🥩', label: 'Raw Meat', desc: 'Restore ' + RAW_MEAT_EAT_AMOUNT + ' hunger',
@@ -3726,6 +3934,18 @@ function updateHud() {
   invSalvageEl.textContent = inventory.salvage;
   invTabletsEl.textContent = inventory.tablets;
   invIronwoodEl.textContent = inventory.ironwood;
+  invCraftLevelEl.textContent = player.craftingLevel + (player.craftingLevel >= MAX_CRAFTING_LEVEL ? ' (max)' : '');
+  // v0.33 — leveling HUD: always visible (unlike the Wren trust row below), since it applies in
+  // both Solo and Duo.
+  levelValueEl.textContent = player.level;
+  if (player.level >= MAX_PLAYER_LEVEL) {
+    xpValueEl.textContent = 'MAX LEVEL';
+    xpBarFillEl.style.width = '100%';
+  } else {
+    const need = xpToNextPlayerLevel(player.level);
+    xpValueEl.textContent = Math.floor(player.xp) + '/' + need + ' XP';
+    xpBarFillEl.style.width = Math.max(0, Math.min(100, player.xp / need * 100)) + '%';
+  }
   if (player.hasCanteen) {
     canteenRow.style.display = 'block';
     invCanteenEl.textContent = Math.round(player.canteenWater/CANTEEN_CAPACITY*100) + '%';
@@ -4606,6 +4826,15 @@ function drawPredator() {
     ctx.beginPath(); ctx.moveTo(14,-14); ctx.lineTo(20,-25); ctx.lineTo(6,-18); ctx.closePath(); ctx.fill(); // ear
     ctx.strokeStyle = flashing ? '#ffffff' : cfg.color; ctx.lineWidth = 4; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(-20,10); ctx.quadraticCurveTo(-34,18,-30,32); ctx.stroke(); // low, trailing tail
+  } else if (predator.type === 'wolf') {
+    // Alpha Wolf (v0.33) — visually a bigger, sharper-eared cousin of the wild dog silhouette, so
+    // it reads as "the same family, further up the danger ladder" rather than a wholly unrelated shape.
+    ctx.fillStyle = flashing ? '#ffffff' : cfg.color;
+    ctx.beginPath(); ctx.moveTo(-16,-11); ctx.lineTo(-24,-24); ctx.lineTo(-8,-16); ctx.closePath(); ctx.fill(); // ear
+    ctx.beginPath(); ctx.moveTo(16,-11); ctx.lineTo(24,-24); ctx.lineTo(8,-16); ctx.closePath(); ctx.fill(); // ear
+    ctx.beginPath(); ctx.moveTo(20,4); ctx.lineTo(34,-3); ctx.lineTo(22,11); ctx.closePath(); ctx.fill(); // tail, held high
+    ctx.strokeStyle = '#eee'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(24,3); ctx.lineTo(32,7); ctx.stroke(); // muzzle-line detail
   }
 
   if (predator.state === 'telegraph') {
