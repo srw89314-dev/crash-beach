@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.33</title>
+<title>Crash Beach — Prototype v0.34</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -225,7 +225,7 @@
   .nameForm input[type=text]:focus { outline: none; border-color: #ffe066; background: rgba(255,255,255,0.13); }
   #nameConfirmBtn { text-align: center; font-weight: bold; }
   .toneBlock { width: 100%; max-width: 360px; margin-bottom: 20px; }
-  .toneRow, .modeRow, .difficultyRow { display: flex; gap: 8px; margin-bottom: 6px; }
+  .toneRow, .modeRow, .difficultyRow, .saveModeRow { display: flex; gap: 8px; margin-bottom: 6px; }
   .toneDesc, .modeDesc, .difficultyDesc { font-size: 11.5px; opacity: 0.8; min-height: 15px; line-height: 1.4; }
   .recipeNote { font-size: 10.5px; color: #e8a94a; margin-top: 3px; }
   .craftBtnSmall {
@@ -251,7 +251,7 @@
     transform: translate(-50%,-50%);
     pointer-events: none;
   }
-  #actionBtn, #interactBtn, #craftBtn, #huntBtn {
+  #actionBtn, #interactBtn, #craftBtn, #huntBtn, #saveBtn {
     position: absolute; right: 26px;
     width: 18%; max-width: 82px; aspect-ratio: 1/1;
     border-radius: 50%;
@@ -275,6 +275,12 @@
   #huntBtn { bottom: 206px; right: 120px; background: rgba(230,110,80,0.32); border: 2px solid rgba(230,110,80,0.65); opacity: 0.4; transition: opacity 0.15s; }
   #huntBtn.active { opacity: 1; }
   #huntBtn.pressed { background: rgba(230,110,80,0.7); }
+  /* v0.34 — Save (Continue mode only): a third button column, clear of both the inventory
+     box hugging the right edge and the huntBtn column beside it. Dimmed exactly like
+     craftBtn/huntBtn when not currently usable (Permadeath mode, or away from camp). */
+  #saveBtn { bottom: 206px; right: 214px; background: rgba(120,200,255,0.32); border: 2px solid rgba(120,200,255,0.65); opacity: 0.4; transition: opacity 0.15s; }
+  #saveBtn.active { opacity: 1; }
+  #saveBtn.pressed { background: rgba(120,200,255,0.7); }
 
   p.note { max-width: 640px; text-align: center; font-size: 13px; color: #89a; margin: 4px 12px 14px; }
   @media (max-width: 480px) {
@@ -288,7 +294,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.33 — choose Solo or Duo, and Story or Survival, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline.</p>
+  <p class="note">Prototype v0.34 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -348,6 +354,7 @@
     <div id="joyBase"><div id="joyKnob"></div></div>
     <div id="huntBtn">HUNT</div>
     <div id="craftBtn">—</div>
+    <div id="saveBtn">SAVE</div>
     <div id="interactBtn">—</div>
     <div id="actionBtn">SPEAR</div>
 
@@ -357,6 +364,8 @@
       <div id="deathStatline"></div>
       <div id="deathInvRecap"></div>
       <div id="deathBestRun" style="margin-top:8px; font-size:12.5px; opacity:0.85;"></div>
+      <div id="deathSaveInfo" style="margin-top:4px; font-size:12.5px; opacity:0.85; display:none;"></div>
+      <button id="continueSaveBtn" class="bigBtn" style="display:none; background:#3a7ac9;">Continue from Last Save</button>
       <button id="retryBtn" class="bigBtn">Try Again</button>
     </div>
 
@@ -376,7 +385,8 @@
         <b>Stream</b> — also a Safe Zone: flowing water, a reed patch to gather (rope material), and a fishing spot — fish restore more hunger than coconuts. Keep heading upstream (west) and you'll pick up a second trail.<br>
         <b>Solo or Duo</b> — chosen once, at the very start of a run, on the name panel. Duo is the full story below, <span class="dyn-wrenName">Wren</span> included. Solo is just you — no one else washed up this run, no meeting, no trust, no camp to merge.<br>
         <b><span class="dyn-wrenName">Wren</span></b> <i>(Duo only)</i> — someone else is out here. Walk up to her at her camp and you'll get one shot at a first impression — approach openly, stay cautious, or hold back — and it sets where Trust starts. Talk to her (E, on a cooldown) any time after that to build it further — high enough trust means real sharing, not just conversation. Get it high enough and she'll move in with you at <span class="dyn-campName">Sean's Camp</span> for good. Trust isn't one-directional, and moving in together doesn't freeze it in place — leave it neglected too long (even after she's moved in) and it drifts down on its own. Let it fall far enough and she turns cold: she'll avoid you, take from your stores when you're not looking, and any conversation is a guarded one — until trust climbs back out of it. Push either extreme far enough and something bigger happens: keep trust near its peak after she's moved in and the relationship deepens for good, with real day-to-day benefits; let it bottom out completely and she leaves for good this run, taking her things back to her old camp. She's no longer just along for the ride, either — whether she follows you into somewhere dangerous is her own call, more likely the more she trusts you, and she draws real food and water from your shared stockpile rather than living on nothing. She can get hurt out there. She won't die from it, but a bad enough scrape sends her running for home to recover, and she won't be at your side again until she's actually made it back.<br>
-        <b>Survive</b> — keep Health, Thirst, and Hunger above zero. There's no rescue ending — the whole game is how long you can last. Death is permanent — a new run starts from scratch.<br>
+        <b>Survive</b> — keep Health, Thirst, and Hunger above zero. There's no rescue ending — the whole game is how long you can last. In Permadeath (the default), death is permanent — a new run starts from scratch. In Continue mode, chosen on the name panel, death instead offers a way back to your last save.<br>
+        <b>Continue mode &amp; saving</b> — an alternative to Permadeath, picked once on the name panel under "On Death." Your run autosaves automatically at the start of a new day and whenever you rest at your shelter, and you can manually save any time with K (or the on-screen SAVE button) while standing at <span class="dyn-campName">Sean's Camp</span>. Die in Continue mode and the death screen offers <i>Continue from Last Save</i> alongside <i>Try Again</i> — pick it up right where your last save left off. A save doesn't capture absolutely everything (the tide, any weather passing through, and exactly where things stood mid-encounter reset fresh) but your character, inventory, day count, and relationship with <span class="dyn-wrenName">Wren</span> all carry over exactly.<br>
         <b>The Long Haul</b> — the island doesn't stay static. The longer a run goes, the less any single food or limited water source (canteen, purification tablets) restores — drinking straight from a spring or stream always stays a full restore, so you're never truly stuck, but cooking your kills matters more and more (it's the best hunger restore in the game). Predators also spawn more often and lean more dangerous as the days add up, and gathering spots take longer to refill. Applies the same way in Solo and Duo.<br>
         <b>Leveling</b> — a predator kill, a full day survived, crafting, and gathering all earn real Player XP (shown top-left, next to your other stats). Leveling up hits harder with Attack, eases your hunger/thirst drain a little, and at level 3 makes Flee noticeably more reliable. At level 5, the alpha wolf — bigger, tougher, and harder to shake off than anything else out here — starts showing up in the mix, and every predator you meet from then on hits and holds up a little harder too, not just the wolf. Crafting and gathering separately feed a second, Crafting Level (shown in your inventory list): as it climbs, the effective heal, thirst, and hunger restored by anything you craft or repair — Bandages, Hone Spear, Purification Tablets, Cooked Meat — quietly improves. Both tracks reset with every new run.<br>
         <b>Surge Events</b> — every so often, on top of that steady climb, something real moves through: a storm, a predator swarm, or a dry spell, each with its own visible warning and its own way of making things harder while it lasts. They pass on their own — the island doesn't stay in one of them forever — but they're worth paying attention to, not waiting out blindly.<br>
@@ -472,6 +482,10 @@
     <div id="namePanel">
       <h3>Before You Begin</h3>
       <div class="meetingNarrative">Every run needs two names — yours, and hers, if anyone else washed up too. Leave either blank and Crash Beach will pick a default.</div>
+      <div id="continueRunBlock" style="display:none; width:100%; max-width:360px; margin-bottom:16px; padding:10px; border:1px solid rgba(120,200,255,0.5); border-radius:8px; background:rgba(120,200,255,0.08);">
+        <div id="continueRunSummary" style="font-size:12.5px; margin-bottom:8px; opacity:0.9;"></div>
+        <button id="continueRunBtn" class="bigBtn" style="background:#3a7ac9; margin-bottom:0;">Continue Run</button>
+      </div>
       <div class="nameForm">
         <div>
           <label for="playerNameInput">Your name</label>
@@ -491,6 +505,11 @@
         <label>Difficulty</label>
         <div class="difficultyRow"></div>
         <div class="difficultyDesc"></div>
+      </div>
+      <div class="toneBlock">
+        <label>On Death</label>
+        <div class="saveModeRow"></div>
+        <div class="saveModeDesc"></div>
       </div>
       <div class="toneBlock">
         <label>Tone</label>
@@ -547,7 +566,47 @@ const deathNarrativeEl = document.getElementById('deathNarrative');
 const deathStatlineEl = document.getElementById('deathStatline');
 const deathInvRecapEl = document.getElementById('deathInvRecap');
 const deathBestRunEl = document.getElementById('deathBestRun');
-document.getElementById('retryBtn').onclick = resetGame;
+// v0.34 — save system DOM refs (see SAVE SYSTEM section below).
+const deathSaveInfoEl = document.getElementById('deathSaveInfo');
+const continueSaveBtn = document.getElementById('continueSaveBtn');
+const continueRunBlock = document.getElementById('continueRunBlock');
+const continueRunSummary = document.getElementById('continueRunSummary');
+const continueRunBtn = document.getElementById('continueRunBtn');
+const saveBtn = document.getElementById('saveBtn');
+function retryFresh() {
+  // Try Again always starts a genuinely new run — Permadeath behaves exactly as it always has,
+  // and in Continue mode this is the explicit "no, abandon that save" choice (the distinct
+  // Continue from Last Save button above it is the other choice). See clearSavedGame().
+  clearSavedGame();
+  resetGame();
+}
+document.getElementById('retryBtn').onclick = retryFresh;
+continueSaveBtn.onclick = function() {
+  const s = getSavedGame();
+  if (!s) return;
+  loadGame(s);
+  dead = false;
+  deathScreen.style.display = 'none';
+  activeOverlay = null;
+  paused = false;
+  lastTime = performance.now();
+  showBanner('Continuing from Day ' + currentDay() + '.', 2200);
+};
+continueRunBtn.onclick = function() {
+  const s = getSavedGame();
+  if (!s) return;
+  loadGame(s);
+  namePanel.style.display = 'none';
+  activeOverlay = null;
+  paused = false;
+  lastTime = performance.now();
+  showBanner('Welcome back — Day ' + currentDay() + '.', 2200);
+};
+saveBtn.addEventListener('pointerdown', e => { e.preventDefault(); manualSave(); saveBtn.classList.add('pressed'); saveBtn.setPointerCapture(e.pointerId); });
+function saveBtnEnd(e) { e.preventDefault(); saveBtn.classList.remove('pressed'); }
+saveBtn.addEventListener('pointerup', saveBtnEnd);
+saveBtn.addEventListener('pointercancel', saveBtnEnd);
+saveBtn.addEventListener('pointerleave', saveBtnEnd);
 
 // ================= DEATH NARRATIVES =================
 // Vivid, cause-specific flavor text, now tiered by Tone (see TONE_TIERS above) — a few variants
@@ -781,6 +840,33 @@ function renderDifficultyRows() {
 }
 renderDifficultyRows();
 
+// On Death: Permadeath vs Continue (v0.34) — a third, independent axis from Mode and Difficulty,
+// same picker pattern (see GAME_MODES/DIFFICULTY_TIERS above). Permadeath is the original,
+// unchanged behavior: death is final, nothing is ever written to storage. Continue adds a real
+// (single-slot) save — see the SAVE SYSTEM section further down for exactly what it captures —
+// autosaved at a new day and at a shelter rest, plus a manual save (K, or the on-screen button)
+// while at camp. Defaults to Permadeath so nothing about existing behavior/balance changes
+// unless a player actively opts in.
+let gameSaveMode = 'permadeath';
+const SAVE_MODES = {
+  permadeath: { name: 'Permadeath', desc: 'Death is final — a new run starts from scratch, exactly like every run before this option existed.' },
+  continue:   { name: 'Continue',   desc: 'Your progress autosaves at a new day and when you rest at camp, plus a manual save (K) at camp any time — die, and you can pick back up from your last save instead of starting over.' },
+};
+function renderSaveModeRows() {
+  document.querySelectorAll('.saveModeRow').forEach(row => {
+    row.innerHTML = '';
+    Object.keys(SAVE_MODES).forEach(key => {
+      const btn = document.createElement('div');
+      btn.className = 'themeSwatch' + (key === gameSaveMode ? ' selected' : '');
+      btn.textContent = SAVE_MODES[key].name;
+      btn.onclick = () => { gameSaveMode = key; renderSaveModeRows(); };
+      row.appendChild(btn);
+    });
+  });
+  document.querySelectorAll('.saveModeDesc').forEach(el => { el.textContent = SAVE_MODES[gameSaveMode].desc; });
+}
+renderSaveModeRows();
+
 // ================= AUDIO (synthesized — no external files) =================
 let audioCtx = null;
 const settings = { musicVolume: 0.35, sfxVolume: 0.6, musicMuted: false, sfxMuted: false };
@@ -953,6 +1039,15 @@ craftCloseBtn.onclick = closeCraftPanel;
 function openNamePanel() {
   activeOverlay = 'names';
   paused = true;
+  // v0.34 — a save from a previous session (or an earlier tab) surfaces here as a Continue
+  // Run option, above the fresh-start name form — see the SAVE SYSTEM section.
+  const s = getSavedGame();
+  if (s) {
+    continueRunSummary.textContent = 'A saved run is waiting: ' + saveSummaryLine(s);
+    continueRunBlock.style.display = 'block';
+  } else {
+    continueRunBlock.style.display = 'none';
+  }
   namePanel.style.display = 'flex';
   playerNameInput.focus();
 }
@@ -996,6 +1091,7 @@ function confirmNames() {
     return; // don't proceed — the panel stays open, inputs keep whatever was typed
   }
   nameErrorMsg.style.display = 'none';
+  clearSavedGame(); // v0.34 — starting a brand-new run from the name form retires any old save
   playerName = playerRaw || 'You';
   wrenName = wrenRaw || 'Wren';
   document.querySelectorAll('.dyn-campName').forEach(el => { el.textContent = playerName + "'s Camp"; });
@@ -1455,6 +1551,7 @@ window.addEventListener('keydown', e => {
   if (k === 'e' && !keys['e']) interactRequested = true;
   if (k === 'c' && !keys['c']) toggleCraftPanel();
   if (k === 'h' && !keys['h']) goHunting();
+  if (k === 'k' && !keys['k']) manualSave();
   keys[k] = true;
   if (e.key === ' ') e.preventDefault();
 });
@@ -2367,6 +2464,7 @@ function processInteract() {
     player.health = Math.min(100, player.health + REST_HEAL_AMOUNT);
     shelter.restCooldown = player.hasPeltCloak ? REST_COOLDOWN_MS * PELT_CLOAK_REST_MULT : REST_COOLDOWN_MS;
     sfx.rest();
+    saveGame(); // v0.34 — autosave: a shelter rest (no-op outside Continue mode)
     showBanner('You rest in the lean-to. Health restored.' + (player.hasPeltCloak ? ' The pelt cloak keeps the chill off — you\'ll be ready again sooner.' : ''), 1900);
   } else if (c.type === 'water') {
     // v0.25 — deliberately NOT scaled by foodEfficiency: a spring/stream is the one reliable,
@@ -2604,6 +2702,7 @@ function updateSurvivalStats(dt) {
   if (dayNow > lastDaySeen) {
     lastDaySeen = dayNow;
     awardPlayerXp(XP_PLAYER_DAY_SURVIVED);
+    saveGame(); // v0.34 — autosave: a new day (see the SAVE SYSTEM section; no-op outside Continue mode)
   }
   // v0.33 — playerLevelSurvivalDrainMult() composes onto the drain rate the same way every other
   // multiplier in this function composes onto its own timer/rate below.
@@ -3830,6 +3929,101 @@ function updateWren(dt) {
   }
 }
 
+// ================= SAVE SYSTEM (v0.34) =================
+// Continue mode (see SAVE_MODES/renderSaveModeRows above) adds one real, single save slot in
+// localStorage. Deliberately NOT a full snapshot of every last timer in the world — the same
+// "disclosed simplification" pattern this project has used before (v0.18's wild dogs, v0.28's
+// islandTrust scoping): tide, surge, the trick system's cooldowns, any in-progress predator
+// encounter, and exact gatherable-pile amounts all reset to a fresh baseline on load rather than
+// being captured. What DOES carry over exactly, because it's what a player actually means by
+// "progress": the player (health/thirst/hunger/position/gear/level/XP on both tracks), the full
+// inventory, current screen, day count and elapsed time, Wren's trust and relationship milestones,
+// the hidden islandTrust stat, run stats, and the run's own name/mode/difficulty/tone settings.
+const SAVE_KEY = 'crashBeachSave_v1';
+function serializeGame() {
+  return {
+    v: 1,
+    savedAt: Date.now(),
+    playerName, wrenName, gameMode, gameDifficulty, contentTier, gameSaveMode,
+    player: Object.assign({}, player),
+    inventory: Object.assign({}, inventory),
+    currentScreen,
+    elapsed, lastDaySeen,
+    trust,
+    islandTrust,
+    stats: Object.assign({}, stats),
+    wren: {
+      met: wren.met, merged: wren.merged, rival: wren.rival, bonded: wren.bonded,
+      estrangedSeen: wren.estrangedSeen, health: wren.health, screen: wren.screen
+    },
+    firstTelegraphSeen
+  };
+}
+function saveGame() {
+  if (gameSaveMode !== 'continue' || dead) return;
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(serializeGame())); }
+  catch (e) { /* best-effort only — private window/storage full, etc. */ }
+}
+function getSavedGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.player && parsed.inventory) return parsed;
+  } catch (e) { /* corrupt/unavailable — treat as no save on record */ }
+  return null;
+}
+function clearSavedGame() {
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* best-effort only */ }
+}
+// Restores a save on top of a freshly reset world: resetGame() first establishes a clean baseline
+// (using the save's own name/mode/difficulty/tone) for everything the save deliberately doesn't
+// carry — tide, surge, trick, predator, gatherable piles, Wren's position/AI timers — and the saved
+// fields are then applied over that baseline.
+function loadGame(save) {
+  playerName = save.playerName || 'You';
+  wrenName = save.wrenName || 'Wren';
+  gameMode = save.gameMode || 'duo';
+  gameDifficulty = save.gameDifficulty || 'survival';
+  contentTier = save.contentTier || 'standard';
+  gameSaveMode = 'continue';
+  resetGame();
+  Object.assign(player, save.player);
+  Object.assign(inventory, save.inventory);
+  if (save.currentScreen && screenData[save.currentScreen]) currentScreen = save.currentScreen;
+  syncScreenEntities();
+  elapsed = typeof save.elapsed === 'number' ? save.elapsed : elapsed;
+  lastDaySeen = typeof save.lastDaySeen === 'number' ? save.lastDaySeen : currentDay();
+  trust = typeof save.trust === 'number' ? save.trust : trust;
+  islandTrust = typeof save.islandTrust === 'number' ? save.islandTrust : islandTrust;
+  if (save.stats) Object.assign(stats, save.stats);
+  if (save.wren) Object.assign(wren, save.wren);
+  if (typeof save.firstTelegraphSeen === 'boolean') firstTelegraphSeen = save.firstTelegraphSeen;
+  renderModeRows(); renderDifficultyRows(); renderToneRows(); renderSaveModeRows();
+  document.querySelectorAll('.dyn-campName').forEach(el => { el.textContent = playerName + "'s Camp"; });
+  document.querySelectorAll('.dyn-wrenName').forEach(el => { el.textContent = wrenName; });
+  updateHud();
+}
+function saveSummaryLine(save) {
+  const mins = Math.floor(save.elapsed / 60), secs = Math.floor(save.elapsed % 60);
+  const modeLabel = (GAME_MODES[save.gameMode] && DIFFICULTY_TIERS[save.gameDifficulty])
+    ? (GAME_MODES[save.gameMode].name + ' / ' + DIFFICULTY_TIERS[save.gameDifficulty].name)
+    : '';
+  return 'Day ' + (save.lastDaySeen || 1) + ' · Level ' + (save.player.level || 1) +
+    (modeLabel ? ' · ' + modeLabel : '') +
+    ' · Survived ' + mins + 'm ' + secs.toString().padStart(2, '0') + 's';
+}
+// Manual save (v0.34) — K, or the on-screen SAVE button — deliberately independent of the rest
+// interact above: it works at full health, off cooldown, any time you're standing at camp.
+function manualSave() {
+  if (dead || activeOverlay) return;
+  if (gameSaveMode !== 'continue') { showBanner('Manual save is only available in Continue mode.', 1800); return; }
+  if (currentScreen !== 'camp') { showBanner('You can only save at your camp.', 1800); return; }
+  saveGame();
+  sfx.craft();
+  showBanner('Progress saved.', 1500);
+}
+
 // v0.30 — a personal-best tracker (one of the "add for better functionality" ideas): "how long
 // can you last" is the whole premise of the game, but nothing ever remembered a player's best run
 // from one session to the next. Uses localStorage (per-browser, no server/account needed — fits
@@ -3905,6 +4099,20 @@ function killPlayer(causeKey) {
     reedPart + fishPart + ropePart + meatPart + cookedPart + bonePart + peltPart + berriesPart + stonePart + herbPart + scrapPart + salvagePart + tabletsPart + ironwoodPart + canteenPart + raftPart;
 
   deathBestRunEl.textContent = recordRunAndGetBestLine(day, Math.floor(elapsed));
+
+  // v0.34 — Continue mode: offer a way back to the last save instead of only "Try Again". A save
+  // never captures the moment of death itself (saveGame() refuses while `dead` is true), so this
+  // is always the state as of the last autosave/manual save, not a rewind of the fatal encounter.
+  const activeSave = gameSaveMode === 'continue' ? getSavedGame() : null;
+  if (activeSave) {
+    deathSaveInfoEl.textContent = 'Last save: ' + saveSummaryLine(activeSave);
+    deathSaveInfoEl.style.display = 'block';
+    continueSaveBtn.style.display = 'inline-block';
+  } else {
+    deathSaveInfoEl.style.display = gameSaveMode === 'continue' ? 'block' : 'none';
+    if (gameSaveMode === 'continue') deathSaveInfoEl.textContent = 'No save on record yet — Try Again starts a new run.';
+    continueSaveBtn.style.display = 'none';
+  }
 
   deathScreen.style.display = 'flex';
 }
@@ -4005,6 +4213,9 @@ function updateHud() {
   // relabels itself while a hunt-triggered encounter is in progress.
   if (huntAvailable()) huntBtn.classList.add('active'); else huntBtn.classList.remove('active');
   huntBtn.textContent = (predator.active && predator.fromHunt) ? 'HUNTING' : 'HUNT';
+  // v0.34 — dimmed the same way craftBtn/huntBtn are when not currently usable.
+  if (gameSaveMode === 'continue' && currentScreen === 'camp' && !dead) saveBtn.classList.add('active');
+  else saveBtn.classList.remove('active');
 }
 
 function draw() {
