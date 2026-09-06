@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.29</title>
+<title>Crash Beach — Prototype v0.30</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -180,8 +180,8 @@
   .nameForm input[type=text]:focus { outline: none; border-color: #ffe066; background: rgba(255,255,255,0.13); }
   #nameConfirmBtn { text-align: center; font-weight: bold; }
   .toneBlock { width: 100%; max-width: 360px; margin-bottom: 20px; }
-  .toneRow, .modeRow { display: flex; gap: 8px; margin-bottom: 6px; }
-  .toneDesc, .modeDesc { font-size: 11.5px; opacity: 0.8; min-height: 15px; line-height: 1.4; }
+  .toneRow, .modeRow, .difficultyRow { display: flex; gap: 8px; margin-bottom: 6px; }
+  .toneDesc, .modeDesc, .difficultyDesc { font-size: 11.5px; opacity: 0.8; min-height: 15px; line-height: 1.4; }
   .recipeNote { font-size: 10.5px; color: #e8a94a; margin-top: 3px; }
   .craftBtnSmall {
     flex-shrink: 0; padding: 8px 14px; font-size: 12px; cursor: pointer;
@@ -243,7 +243,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.29 — choose Solo or Duo before you begin, and the island itself now leans in the longer you last: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through.</p>
+  <p class="note">Prototype v0.30 — choose Solo or Duo, and Story or Survival, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -306,6 +306,7 @@
       <div id="deathNarrative"></div>
       <div id="deathStatline"></div>
       <div id="deathInvRecap"></div>
+      <div id="deathBestRun" style="margin-top:8px; font-size:12.5px; opacity:0.85;"></div>
       <button id="retryBtn" class="bigBtn">Try Again</button>
     </div>
 
@@ -410,10 +411,16 @@
         <div class="modeDesc"></div>
       </div>
       <div class="toneBlock">
+        <label>Difficulty</label>
+        <div class="difficultyRow"></div>
+        <div class="difficultyDesc"></div>
+      </div>
+      <div class="toneBlock">
         <label>Tone</label>
         <div class="toneRow"></div>
         <div class="toneDesc"></div>
       </div>
+      <div id="nameErrorMsg" style="display:none; color:#ff8080; font-size:12px; margin-bottom:6px;"></div>
       <button id="nameConfirmBtn" class="bigBtn">Begin</button>
     </div>
   </div>
@@ -458,6 +465,7 @@ const deathScreen = document.getElementById('deathScreen');
 const deathNarrativeEl = document.getElementById('deathNarrative');
 const deathStatlineEl = document.getElementById('deathStatline');
 const deathInvRecapEl = document.getElementById('deathInvRecap');
+const deathBestRunEl = document.getElementById('deathBestRun');
 document.getElementById('retryBtn').onclick = resetGame;
 
 // ================= DEATH NARRATIVES =================
@@ -652,6 +660,33 @@ function renderModeRows() {
 }
 renderModeRows();
 
+// Story/Survival difficulty (v0.30, roadmap task 15) — a separate axis from Solo/Duo (which
+// decides whether Wren exists this run) and from Tone (which only ever touched writing). This
+// is the "how hard do the systems push back" dial section 6 of the design doc always intended:
+// same map, same Wren, same choices either way — Story just eases how fast/far the day-based
+// escalation curves below (food/water efficiency, predator pacing, resource scarcity, surge
+// frequency) and the trust economy move, rather than changing any content. Defaults to Survival
+// so nothing about existing balance/behavior changes unless a player actively picks Story.
+let gameDifficulty = 'survival';
+const DIFFICULTY_TIERS = {
+  survival: { name: 'Survival', desc: 'Full challenge — hunger/thirst get harder to satisfy, predators get faster and meaner, resources get scarcer, and Wren’s trust swings matter more, the longer you last.' },
+  story:    { name: 'Story',    desc: 'A gentler curve — same map, same Wren, same choices, but everything above eases up so the relationship and the setting have more room to breathe.' },
+};
+function renderDifficultyRows() {
+  document.querySelectorAll('.difficultyRow').forEach(row => {
+    row.innerHTML = '';
+    Object.keys(DIFFICULTY_TIERS).forEach(key => {
+      const btn = document.createElement('div');
+      btn.className = 'themeSwatch' + (key === gameDifficulty ? ' selected' : '');
+      btn.textContent = DIFFICULTY_TIERS[key].name;
+      btn.onclick = () => { gameDifficulty = key; renderDifficultyRows(); };
+      row.appendChild(btn);
+    });
+  });
+  document.querySelectorAll('.difficultyDesc').forEach(el => { el.textContent = DIFFICULTY_TIERS[gameDifficulty].desc; });
+}
+renderDifficultyRows();
+
 // ================= AUDIO (synthesized — no external files) =================
 let audioCtx = null;
 const settings = { musicVolume: 0.35, sfxVolume: 0.6, musicMuted: false, sfxMuted: false };
@@ -810,9 +845,48 @@ function openNamePanel() {
   namePanel.style.display = 'flex';
   playerNameInput.focus();
 }
+
+// v0.30 — name filter (Sean's explicit ask alongside the ElevenLabs voice work): both names get
+// read back everywhere in the game — HUD labels, banners, narrative text, and eventually voiced
+// dialogue — so this rejects anything vulgar, a slur, or an obvious troll/joke entry before a run
+// can start, rather than letting it get baked into the whole rest of the session. Best-effort, not
+// a perfect filter: leetspeak substitutions and separators get normalized out first so simple
+// dodges ("a55hole", "f u c k") still get caught, but no wordlist catches everything, and that's
+// an accepted tradeoff for a $0 static site with no server to run a real moderation service on.
+// The list itself is stored base64-encoded purely so the page's plain-text source doesn't read as
+// a list of slurs at a glance — it decodes locally in the browser; nothing is sent anywhere.
+const NAME_BLOCKLIST_B64 = "ZnVjawpzaGl0CmN1bnQKYml0Y2gKYXNzaG9sZQpiYXN0YXJkCmRpY2sKcHVzc3kKY29jawp3aG9yZQpzbHV0Cm5pZ2dlcgpuaWdnYQpmYWdnb3QKZmFnCnJldGFyZApzcGljCmNoaW5rCmtpa2UKdHJhbm55CnJhcGUKbmF6aQpoaXRsZXIKcG9ybgphZG1pbgptb2RlcmF0b3IKdGVzdApudWxsCnVuZGVmaW5lZAphc2RmCnF3ZXJ0eQpub29iCnBvb3AKZmFydApidXR0Cg==";
+let _nameBlocklistCache = null;
+function getNameBlocklist() {
+  if (!_nameBlocklistCache) {
+    try { _nameBlocklistCache = atob(NAME_BLOCKLIST_B64).split('\n').filter(Boolean); }
+    catch (e) { _nameBlocklistCache = []; }
+  }
+  return _nameBlocklistCache;
+}
+function normalizeNameForFilter(s) {
+  return s.toLowerCase()
+    .replace(/0/g, 'o').replace(/[1!|]/g, 'i').replace(/3/g, 'e').replace(/4/g, 'a')
+    .replace(/[5$]/g, 's').replace(/7/g, 't').replace(/@/g, 'a')
+    .replace(/[^a-z]/g, ''); // strips spaces/punctuation/digits used to dodge an exact match
+}
+function isNameBlocked(raw) {
+  const norm = normalizeNameForFilter(raw);
+  if (!norm) return false; // blank just falls back to the default name below, not a rejection
+  return getNameBlocklist().some(bad => norm.includes(bad));
+}
 function confirmNames() {
-  playerName = playerNameInput.value.trim().slice(0, 18) || 'You';
-  wrenName = wrenNameInput.value.trim().slice(0, 18) || 'Wren';
+  const playerRaw = playerNameInput.value.trim().slice(0, 18);
+  const wrenRaw = wrenNameInput.value.trim().slice(0, 18);
+  const nameErrorMsg = document.getElementById('nameErrorMsg');
+  if (isNameBlocked(playerRaw) || isNameBlocked(wrenRaw)) {
+    nameErrorMsg.textContent = "One of those names isn't going to work here — try something else.";
+    nameErrorMsg.style.display = 'block';
+    return; // don't proceed — the panel stays open, inputs keep whatever was typed
+  }
+  nameErrorMsg.style.display = 'none';
+  playerName = playerRaw || 'You';
+  wrenName = wrenRaw || 'Wren';
   document.querySelectorAll('.dyn-campName').forEach(el => { el.textContent = playerName + "'s Camp"; });
   document.querySelectorAll('.dyn-wrenName').forEach(el => { el.textContent = wrenName; });
   // gameMode was already set live by the mode picker's onclick (see renderModeRows), but
@@ -1151,6 +1225,13 @@ const TRUST_MERGE_THRESHOLD = 80;  // triggers the one-time camps-merge scene
 // between enter/exit is deliberate hysteresis so trust hovering right at the line doesn't
 // flicker the state every frame.
 const TRUST_DECAY_PER_SEC = 100 / 2400; // a full 100->0 drain takes 40 real minutes of total neglect
+// v0.30 — Story mode: trust drifts down at half the rate (an 80-minute drain instead of 40), and
+// conversation builds it back up faster (see the talk_wren branch in processInteract()) — the
+// concrete mechanical shape of "the ally path is easier to reach" from section 6 of the design doc.
+const TRUST_DECAY_MULT_STORY = 0.5;
+const TRUST_GAIN_MULT_STORY = 1.5;
+function trustDecayMult() { return gameDifficulty === 'story' ? TRUST_DECAY_MULT_STORY : 1; }
+function trustGainMult() { return gameDifficulty === 'story' ? TRUST_GAIN_MULT_STORY : 1; }
 const TRUST_RIVAL_ENTER = 25;
 const TRUST_RIVAL_EXIT = 35;
 const WREN_RAID_COOLDOWN_MIN_MS = 45000;
@@ -1833,8 +1914,13 @@ function currentDay() {
 // everything else, and a run should always have at least one fully reliable restore available.
 const FOOD_EFFICIENCY_FLOOR = 0.5;
 const FOOD_EFFICIENCY_DECAY_PER_DAY = 0.05;
+// v0.30 — Story mode's gentler version of the same curve: a higher floor, reached more slowly.
+const FOOD_EFFICIENCY_FLOOR_STORY = 0.75;
+const FOOD_EFFICIENCY_DECAY_PER_DAY_STORY = 0.02;
 function foodEfficiency(day) {
-  return Math.max(FOOD_EFFICIENCY_FLOOR, 1 - (day - 1) * FOOD_EFFICIENCY_DECAY_PER_DAY);
+  const floor = gameDifficulty === 'story' ? FOOD_EFFICIENCY_FLOOR_STORY : FOOD_EFFICIENCY_FLOOR;
+  const decay = gameDifficulty === 'story' ? FOOD_EFFICIENCY_DECAY_PER_DAY_STORY : FOOD_EFFICIENCY_DECAY_PER_DAY;
+  return Math.max(floor, 1 - (day - 1) * decay);
 }
 
 function nearbyGatherable() {
@@ -2112,7 +2198,7 @@ function processInteract() {
     triggerCampsMerge();
   } else if (c.type === 'rival_wren') {
     wren.talkCooldown = WREN_TALK_COOLDOWN_MS;
-    trust = Math.min(100, trust + 2); // cold, but the door isn't fully shut — a slower way back than being friendly ever was
+    trust = Math.min(100, trust + 2 * trustGainMult()); // cold, but the door isn't fully shut — a slower way back than being friendly ever was
     sfx.block();
     showBanner(wrenRivalLine(contentTier), 3400);
     updateHud();
@@ -2120,14 +2206,14 @@ function processInteract() {
     wren.talkCooldown = WREN_TALK_COOLDOWN_MS;
     const line = wrenTalkLine(contentTier);
     if (trust >= TRUST_ALLY_THRESHOLD) {
-      trust = Math.min(100, trust + 3);
+      trust = Math.min(100, trust + 3 * trustGainMult());
       const bonusOptions = ['wood', 'coconut', 'reed'];
       const bonus = bonusOptions[Math.floor(Math.random() * bonusOptions.length)];
       inventory[bonus] = (inventory[bonus] || 0) + 1;
       sfx.forage();
       showBanner(line + ' (+1 ' + bonus + ' · trust rising)', 3400);
     } else {
-      trust = Math.min(100, trust + 4);
+      trust = Math.min(100, trust + 4 * trustGainMult());
       sfx.craft();
       showBanner(line, 3400);
     }
@@ -2233,8 +2319,13 @@ function processInteract() {
 // so a very long run's gathering spots never take more than 80% longer than their base time.
 const RESOURCE_SCARCITY_CEIL_MULT = 1.8;
 const RESOURCE_SCARCITY_PER_DAY = 0.06;
+// v0.30 — Story mode: gathering spots dry up more gently and hit a lower ceiling.
+const RESOURCE_SCARCITY_CEIL_MULT_STORY = 1.3;
+const RESOURCE_SCARCITY_PER_DAY_STORY = 0.025;
 function resourceRegenMult(day) {
-  return Math.min(RESOURCE_SCARCITY_CEIL_MULT, 1 + (day - 1) * RESOURCE_SCARCITY_PER_DAY);
+  const ceil = gameDifficulty === 'story' ? RESOURCE_SCARCITY_CEIL_MULT_STORY : RESOURCE_SCARCITY_CEIL_MULT;
+  const perDay = gameDifficulty === 'story' ? RESOURCE_SCARCITY_PER_DAY_STORY : RESOURCE_SCARCITY_PER_DAY;
+  return Math.min(ceil, 1 + (day - 1) * perDay);
 }
 
 // ================= SURGE EVENTS (v0.27) =================
@@ -2276,8 +2367,13 @@ const SURGE_COOLDOWN_MIN_MS = 100000;         // ~100s
 const SURGE_COOLDOWN_MAX_MS = 200000;         // ~200s — averages to a comfortable multi-minute gap
 const SURGE_FREQ_FLOOR_MULT = 0.55;           // cooldowns never shrink below 55% of their base range
 const SURGE_FREQ_DECAY_PER_DAY = 0.035;
+// v0.30 — Story mode: surges stay calmer, both rarer at the floor and slower to get there.
+const SURGE_FREQ_FLOOR_MULT_STORY = 0.8;
+const SURGE_FREQ_DECAY_PER_DAY_STORY = 0.015;
 function surgeCooldownMult(day) {
-  return Math.max(SURGE_FREQ_FLOOR_MULT, 1 - (day - 1) * SURGE_FREQ_DECAY_PER_DAY);
+  const floor = gameDifficulty === 'story' ? SURGE_FREQ_FLOOR_MULT_STORY : SURGE_FREQ_FLOOR_MULT;
+  const decay = gameDifficulty === 'story' ? SURGE_FREQ_DECAY_PER_DAY_STORY : SURGE_FREQ_DECAY_PER_DAY;
+  return Math.max(floor, 1 - (day - 1) * decay);
 }
 function pickSurgeType() {
   const choices = surge.lastType ? SURGE_TYPES.filter(t => t !== surge.lastType) : SURGE_TYPES;
@@ -2407,7 +2503,7 @@ function updateSurvivalStats(dt) {
   // already a no-op, but the explicit check keeps the gate visible here instead of relying on
   // that indirectly).
   if (gameMode === 'duo' && wren.met) {
-    trust = Math.max(0, trust - TRUST_DECAY_PER_SEC * dt);
+    trust = Math.max(0, trust - TRUST_DECAY_PER_SEC * trustDecayMult() * dt);
     if (!wren.rival && trust < TRUST_RIVAL_ENTER) {
       wren.rival = true;
       wren.accompanying = false; // v0.26 — a rival wouldn't be following you into danger
@@ -2830,13 +2926,23 @@ function randRange([lo, hi]) { return lo + Math.floor(Math.random() * (hi - lo +
 // ceilinged so a very long run stays hard, not unfair.
 const PREDATOR_COOLDOWN_FLOOR_MULT = 0.55; // spawns never come faster than 55% of the base cooldown
 const PREDATOR_COOLDOWN_DECAY_PER_DAY = 0.04;
+// v0.30 — Story mode: spawns still speed up over time, but stop well short of Survival's floor.
+const PREDATOR_COOLDOWN_FLOOR_MULT_STORY = 0.8;
+const PREDATOR_COOLDOWN_DECAY_PER_DAY_STORY = 0.018;
 function predatorCooldownMult(day) {
-  return Math.max(PREDATOR_COOLDOWN_FLOOR_MULT, 1 - (day - 1) * PREDATOR_COOLDOWN_DECAY_PER_DAY);
+  const floor = gameDifficulty === 'story' ? PREDATOR_COOLDOWN_FLOOR_MULT_STORY : PREDATOR_COOLDOWN_FLOOR_MULT;
+  const decay = gameDifficulty === 'story' ? PREDATOR_COOLDOWN_DECAY_PER_DAY_STORY : PREDATOR_COOLDOWN_DECAY_PER_DAY;
+  return Math.max(floor, 1 - (day - 1) * decay);
 }
 const PREDATOR_DANGER_SHIFT_CAP = 0.5; // dog/cat weight can at most double, boar's can at most halve
 const PREDATOR_DANGER_SHIFT_PER_DAY = 0.045;
+// v0.30 — Story mode: the mix still tilts toward dog/cat over time, just far more slowly and to a lower cap.
+const PREDATOR_DANGER_SHIFT_CAP_STORY = 0.25;
+const PREDATOR_DANGER_SHIFT_PER_DAY_STORY = 0.02;
 function predatorSpeciesWeights(day) {
-  const shift = Math.min(PREDATOR_DANGER_SHIFT_CAP, (day - 1) * PREDATOR_DANGER_SHIFT_PER_DAY);
+  const cap = gameDifficulty === 'story' ? PREDATOR_DANGER_SHIFT_CAP_STORY : PREDATOR_DANGER_SHIFT_CAP;
+  const perDay = gameDifficulty === 'story' ? PREDATOR_DANGER_SHIFT_PER_DAY_STORY : PREDATOR_DANGER_SHIFT_PER_DAY;
+  const shift = Math.min(cap, (day - 1) * perDay);
   return {
     boar: Math.max(1.5, PREDATOR_TYPES.boar.weight * (1 - shift)),
     dog: PREDATOR_TYPES.dog.weight * (1 + shift),
@@ -3172,6 +3278,36 @@ function updateWren(dt) {
   }
 }
 
+// v0.30 — a personal-best tracker (one of the "add for better functionality" ideas): "how long
+// can you last" is the whole premise of the game, but nothing ever remembered a player's best run
+// from one session to the next. Uses localStorage (per-browser, no server/account needed — fits
+// the $0 static-site model exactly), keyed by mode+difficulty so a Solo/Story best and a Duo/
+// Survival best don't get compared against each other as if they were the same challenge.
+const BEST_RUN_STORAGE_PREFIX = 'crashBeachBest_';
+function bestRunKey() { return BEST_RUN_STORAGE_PREFIX + gameMode + '_' + gameDifficulty; }
+function getBestRun() {
+  try {
+    const raw = localStorage.getItem(bestRunKey());
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.day === 'number' && typeof parsed.seconds === 'number') return parsed;
+  } catch (e) { /* localStorage unavailable (private window, etc.) — treat as no best on record */ }
+  return null;
+}
+function recordRunAndGetBestLine(day, seconds) {
+  const modeLabel = GAME_MODES[gameMode].name + ' / ' + DIFFICULTY_TIERS[gameDifficulty].name;
+  let prev;
+  try { prev = getBestRun(); } catch (e) { prev = null; }
+  const isNewBest = !prev || day > prev.day || (day === prev.day && seconds > prev.seconds);
+  if (isNewBest) {
+    try { localStorage.setItem(bestRunKey(), JSON.stringify({ day, seconds })); } catch (e) { /* best-effort only */ }
+    return prev
+      ? 'New personal best for ' + modeLabel + ' — Day ' + day + ' (previous best: Day ' + prev.day + ').'
+      : 'New personal best for ' + modeLabel + ' — Day ' + day + '.';
+  }
+  return 'Personal best for ' + modeLabel + ' — Day ' + prev.day + '.';
+}
+
 function killPlayer(causeKey) {
   dead = true;
   sfx.death();
@@ -3215,6 +3351,8 @@ function killPlayer(causeKey) {
     'Final inventory — Spear: ' + Math.max(0, player.spearDurability) + '/' + spearMax +
     ' · Wood: ' + inventory.wood + ' · Coconut: ' + inventory.coconut + ' · Shell: ' + inventory.shell +
     reedPart + fishPart + ropePart + meatPart + cookedPart + bonePart + peltPart + berriesPart + stonePart + herbPart + scrapPart + salvagePart + tabletsPart + ironwoodPart + canteenPart + raftPart;
+
+  deathBestRunEl.textContent = recordRunAndGetBestLine(day, Math.floor(elapsed));
 
   deathScreen.style.display = 'flex';
 }
@@ -3268,7 +3406,10 @@ function updateHud() {
   // now the only place a player ever saw it was the death screen. Added live, right next to the
   // survival clock it already reads next to.
   timerEl.textContent = 'Survived: ' + m + ':' + s.toString().padStart(2,'0') + ' · Day ' + currentDay();
-  const LOCATION_NAMES = { beach: '📍 Crash Beach', camp: '📍 ' + playerName + "'s Camp", stream: '📍 Freshwater Stream', wrenscamp: '📍 ' + wrenName + "'s Camp", ridge: '📍 The Ridge', jungle: '📍 Jungle Interior', shipwreck: '📍 Shipwreck Shallows', lowtide: '📍 Low-Tide Wreckage Field', secondisland: '📍 The Second Island' };
+  // v0.30 fix (playtest nitpick): Solo mode framed itself as "no one else washed up this run,"
+  // but this label still read "Wren's Camp" even with nobody there. Solo now gets its own label.
+  const wrenCampLabel = gameMode === 'solo' ? '📍 An Empty Camp' : '📍 ' + wrenName + "'s Camp";
+  const LOCATION_NAMES = { beach: '📍 Crash Beach', camp: '📍 ' + playerName + "'s Camp", stream: '📍 Freshwater Stream', wrenscamp: wrenCampLabel, ridge: '📍 The Ridge', jungle: '📍 Jungle Interior', shipwreck: '📍 Shipwreck Shallows', lowtide: '📍 Low-Tide Wreckage Field', secondisland: '📍 The Second Island' };
   const isSafe = !screenData[currentScreen].dangerous;
   // v0.23 — the tide state only matters (and is only shown) while actually at the one screen it gates
   const tidePart = currentScreen === 'lowtide' ? (tide === 'low' ? ' · Low Tide' : ' · High Tide') : '';
