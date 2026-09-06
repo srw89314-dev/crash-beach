@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.31</title>
+<title>Crash Beach — Prototype v0.32</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -99,7 +99,7 @@
      same purple identity the Restless/Wrathful disorientation trick already established, so a
      careful player has *something* to notice and connect, without the game ever saying why. */
   #banner.trustTell { color: #caa6f0; }
-  #deathScreen, #optionsPanel, #craftPanel, #meetingPanel, #mergePanel, #namePanel, #bondedPanel, #estrangedPanel {
+  #deathScreen, #optionsPanel, #craftPanel, #meetingPanel, #mergePanel, #namePanel, #bondedPanel, #estrangedPanel, #battlePanel {
     position: absolute; inset: 0; background: rgba(5,5,10,0.92);
     display: none; align-items: center; justify-content: center; flex-direction: column;
     border-radius: 4px; padding: 16px; box-sizing: border-box; overflow-y: auto;
@@ -160,6 +160,44 @@
   .recipeCost span { margin-right: 8px; }
   .costOk { color: #7ed99a; }
   .costShort { color: #e88; }
+
+  /* v0.32 — the turn-based battle scene. A predator encounter now transitions into this full
+     panel (same modal pattern as everything else here) instead of resolving live on the map —
+     see enterBattle()/BATTLE SCENE section in the script below. */
+  #battlePanel h3 { margin: 0 0 16px; color: #ffe066; font-size: 16px; text-align: center; }
+  .battleArena { display: flex; align-items: center; gap: 18px; width: 100%; max-width: 480px; margin-bottom: 16px; }
+  .battleCombatant { flex: 1; text-align: center; }
+  .battleName { font-size: 13px; font-weight: bold; color: #fff; margin-bottom: 5px; }
+  .battleVs { font-size: 12px; opacity: 0.6; flex-shrink: 0; }
+  .battleHpText { font-size: 11px; opacity: 0.8; margin-top: 3px; }
+  #battlePlayerHpFill { background: linear-gradient(90deg,#e74c3c,#e67e22); width: 100%; }
+  #battleEnemyHpFill.enemyFill { background: linear-gradient(90deg, #e07a5f, #c44536); width: 100%; }
+  #battleLog {
+    width: 100%; max-width: 480px; min-height: 58px; max-height: 100px; overflow-y: auto;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px; padding: 8px 12px; font-size: 12.5px; line-height: 1.6;
+    color: #f0e6d8; margin-bottom: 16px; box-sizing: border-box; text-align: left;
+  }
+  #battleLog div { margin-bottom: 3px; }
+  #battleLog div:last-child { color: #ffe066; }
+  #battleMenu, #battleItemMenu { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; max-width: 480px; justify-content: center; }
+  .battleBtn {
+    flex: 1; min-width: 100px; padding: 12px 10px; font-size: 13px; cursor: pointer;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25);
+    color: #eef; border-radius: 8px; font-family: inherit;
+  }
+  .battleBtn:hover:not(:disabled) { background: rgba(255,255,255,0.18); border-color: #ffe066; }
+  .battleBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .battleBtn.spareBtn { border-color: #caa6f0; }
+  .battleItemCard {
+    width: 100%; text-align: left; display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; font-size: 12.5px; cursor: pointer;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25);
+    color: #eef; border-radius: 8px; font-family: inherit;
+  }
+  .battleItemCard:hover { background: rgba(255,255,255,0.18); border-color: #ffe066; }
+  .battleItemDesc { opacity: 0.7; font-size: 11px; }
+  #battleItemBackBtn { margin-top: 4px; }
 
   #meetingPanel h3 { margin: 0 0 12px; color: #ffe066; font-size: 16px; text-align: center; }
   .meetingNarrative {
@@ -249,7 +287,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.31 — choose Solo or Duo, and Story or Survival, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through.</p>
+  <p class="note">Prototype v0.32 — choose Solo or Duo, and Story or Survival, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -300,7 +338,7 @@
     <div id="locationTag"></div>
     <div id="surgeIndicator"></div>
     <div id="banner"></div>
-    <div id="instructions">Drag left to move • SPEAR to fight • green to interact • purple opens crafting • red goes hunting</div>
+    <div id="instructions">Drag left to move • fight from the battle menu when a predator closes in • green to interact • purple opens crafting • red goes hunting</div>
     <div id="joyBase"><div id="joyKnob"></div></div>
     <div id="huntBtn">HUNT</div>
     <div id="craftBtn">—</div>
@@ -320,7 +358,7 @@
       <h3>How to play</h3>
       <div class="howto">
         <b>Move</b> — WASD / Arrow keys, or drag the left circle.<br>
-        <b>Fight</b> — SPACE or the SPEAR button. Time it to a predator's charge to block; miss it and just move out of the way to dodge instead. Your spear has limited durability and can break. A small bar over it shows how close it is to backing off. Three kinds prowl the beach now — a boar, wild dogs, and a big cat — each with its own speed, bite, and toughness. Land enough blocks and it flees; catch up to a fleeing one and hit it once more (SPACE, while close) to bring it down for good instead — a riskier, faster way to a real kill, with meat, bone, and pelt to show for it.<br>
+        <b>Fight</b> — no timing or reflexes needed anymore. When a predator closes in, the screen shifts into its own battle scene with a simple menu: <b>Attack</b> (costs 1 spear durability, always lands), <b>Defend</b> (cuts the predator's next hit), <b>Item</b> (use a Bandage/food/tablet from your pack without leaving the fight), <b>Flee</b> (try to break off — chance of success, and a miss gives it a free hit), and <b>Spare</b> (once it's weakened enough, let it go clean — no kill, no drops, but the island notices mercy). Fight it down to nothing instead and it drops meat, bone, and pelt. Your spear has limited durability and can break mid-fight — Attack turns off until you repair it (Item/Flee/Defend still work). Three kinds prowl the beach now — a boar, wild dogs, and a big cat — each with its own toughness, bite, and how hard it is to shake off with Flee.<br>
         <b>Go Hunting</b> — H or the red button, anywhere a predator could spawn (Crash Beach, Jungle Interior, the Second Island) and you're not already in a fight. Instead of waiting for something to find you, you go looking for it. <i>(Duo only)</i> Bring <span class="dyn-wrenName">Wren</span> along and, past a real level of trust, she'll wade into the fight at your side — the more she trusts you, the harder she hits.<br>
         <b>Interact</b> — E or the green button. Drinks at a water source, forages coconuts, catches fish, gathers wood or reeds, eats, or rests at your shelter — whichever is nearest and relevant.<br>
         <b>Craft</b> — C or the purple button opens the crafting library: browse every known recipe, see what it costs, and make it if you have the goods. Nothing crafts automatically anymore. A kill's spoils go further at the fire: cook meat for real food, lash a bone onto your spear for extra durability, or stitch a pelt into a cloak that cuts your rest cooldown.<br>
@@ -362,6 +400,32 @@
       <div class="subhead">Everything you know how to make. Costs refresh each time you open this.</div>
       <div id="recipeList"></div>
       <button id="craftCloseBtn" class="bigBtn">Close</button>
+    </div>
+
+    <div id="battlePanel">
+      <h3 id="battleTitle">A predator blocks your path!</h3>
+      <div class="battleArena">
+        <div class="battleCombatant">
+          <div class="battleName" id="battlePlayerName">You</div>
+          <div class="barBg"><div id="battlePlayerHpFill" class="barFill"></div></div>
+          <div class="battleHpText" id="battlePlayerHpText">100/100</div>
+        </div>
+        <div class="battleVs">VS</div>
+        <div class="battleCombatant">
+          <div class="battleName" id="battleEnemyName">???</div>
+          <div class="barBg"><div id="battleEnemyHpFill" class="barFill enemyFill"></div></div>
+          <div class="battleHpText" id="battleEnemyHpText">0/0</div>
+        </div>
+      </div>
+      <div id="battleLog"></div>
+      <div id="battleMenu">
+        <button id="battleAttackBtn" class="battleBtn">⚔️ Attack</button>
+        <button id="battleDefendBtn" class="battleBtn">🛡️ Defend</button>
+        <button id="battleItemBtn" class="battleBtn">🎒 Item</button>
+        <button id="battleSpareBtn" class="battleBtn spareBtn" style="display:none">🕊️ Spare</button>
+        <button id="battleFleeBtn" class="battleBtn">🏃 Flee</button>
+      </div>
+      <div id="battleItemMenu" style="display:none"></div>
     </div>
 
     <div id="meetingPanel">
@@ -775,6 +839,23 @@ const resumeBtn = document.getElementById('resumeBtn');
 const craftPanel = document.getElementById('craftPanel');
 const craftCloseBtn = document.getElementById('craftCloseBtn');
 const recipeListEl = document.getElementById('recipeList');
+// v0.32 — the turn-based battle scene panel. See the BATTLE SCENE section further down.
+const battlePanel = document.getElementById('battlePanel');
+const battleTitleEl = document.getElementById('battleTitle');
+const battlePlayerNameEl = document.getElementById('battlePlayerName');
+const battlePlayerHpFillEl = document.getElementById('battlePlayerHpFill');
+const battlePlayerHpTextEl = document.getElementById('battlePlayerHpText');
+const battleEnemyNameEl = document.getElementById('battleEnemyName');
+const battleEnemyHpFillEl = document.getElementById('battleEnemyHpFill');
+const battleEnemyHpTextEl = document.getElementById('battleEnemyHpText');
+const battleLogEl = document.getElementById('battleLog');
+const battleMenuEl = document.getElementById('battleMenu');
+const battleItemMenuEl = document.getElementById('battleItemMenu');
+const battleAttackBtn = document.getElementById('battleAttackBtn');
+const battleDefendBtn = document.getElementById('battleDefendBtn');
+const battleItemBtn = document.getElementById('battleItemBtn');
+const battleSpareBtn = document.getElementById('battleSpareBtn');
+const battleFleeBtn = document.getElementById('battleFleeBtn');
 const meetingPanel = document.getElementById('meetingPanel');
 const meetOpenBtn = document.getElementById('meetOpenBtn');
 const meetCautiousBtn = document.getElementById('meetCautiousBtn');
@@ -795,7 +876,7 @@ const playerNameInput = document.getElementById('playerNameInput');
 const wrenNameInput = document.getElementById('wrenNameInput');
 const nameConfirmBtn = document.getElementById('nameConfirmBtn');
 let paused = false;
-let activeOverlay = null; // null | 'options' | 'craft' | 'meeting' | 'merge' | 'names' | 'bonded' | 'estranged'
+let activeOverlay = null; // null | 'options' | 'craft' | 'meeting' | 'merge' | 'names' | 'bonded' | 'estranged' | 'battle'
 // Player and Wren's names, set once at the start of a run via the name panel below.
 // Every UI string that used to hardcode "Sean"/"Wren" now reads these instead, either
 // live (JS-generated banners/labels) or via the .dyn-campName/.dyn-wrenName spans, which
@@ -808,7 +889,7 @@ let wrenName = 'Wren';
 let firstTelegraphSeen = false;
 
 function openOptions() {
-  if (dead || activeOverlay === 'craft' || activeOverlay === 'meeting' || activeOverlay === 'merge' || activeOverlay === 'names' || activeOverlay === 'bonded' || activeOverlay === 'estranged') return;
+  if (dead || activeOverlay === 'craft' || activeOverlay === 'meeting' || activeOverlay === 'merge' || activeOverlay === 'names' || activeOverlay === 'bonded' || activeOverlay === 'estranged' || activeOverlay === 'battle') return;
   ensureAudio();
   activeOverlay = 'options';
   paused = true;
@@ -824,7 +905,7 @@ optionsBtn.onclick = openOptions;
 resumeBtn.onclick = closeOptions;
 
 function openCraftPanel() {
-  if (dead || activeOverlay === 'options' || activeOverlay === 'meeting' || activeOverlay === 'merge' || activeOverlay === 'names' || activeOverlay === 'bonded' || activeOverlay === 'estranged') return;
+  if (dead || activeOverlay === 'options' || activeOverlay === 'meeting' || activeOverlay === 'merge' || activeOverlay === 'names' || activeOverlay === 'bonded' || activeOverlay === 'estranged' || activeOverlay === 'battle') return;
   ensureAudio();
   activeOverlay = 'craft';
   paused = true;
@@ -1051,6 +1132,7 @@ window.addEventListener('keydown', e => {
     else if (activeOverlay === 'names') { /* no-op — must confirm names to begin */ }
     else if (activeOverlay === 'bonded') resolveBondedScene();
     else if (activeOverlay === 'estranged') resolveEstrangedScene();
+    else if (activeOverlay === 'battle') { /* no-op — a fight is decided from its own menu, not Escape */ }
     else openOptions();
   }
 });
@@ -1809,7 +1891,10 @@ function resetGame() {
   player = {
     x: W/2, y: H - 90, health: 100, thirst: 100, hunger: 100, facing: 1,
     spearDurability: SPEAR_DURABILITY, hasCanteen: false, canteenWater: 0,
-    spearUpgraded: false, spearReinforced: false, spearMastered: false, hasPeltCloak: false, hasRaft: false
+    spearUpgraded: false, spearReinforced: false, spearMastered: false, hasPeltCloak: false, hasRaft: false,
+    // v0.32 — true only for the round just chosen inside the battle scene; halves the predator's
+    // counter-attack damage that round, then cleared. See battleResolveRound().
+    battleDefending: false
   };
   predator = {
     active: false, type: null, cfg: null, state: 'idle', x: 0, y: 0,
@@ -1818,7 +1903,9 @@ function resetGame() {
     flashUntil: 0, blockWindowUsed: false, noSpearWarned: false, finishUsed: false,
     // v0.26 — set by goHunting()/spawnPredator() when an encounter was deliberately sought out
     // rather than wandered into; gates Wren's hunt-lethality bonus (see updatePredator()).
-    fromHunt: false, wrenJoins: false
+    fromHunt: false, wrenJoins: false,
+    // v0.32 — battle-scene HP, set fresh by enterBattle() each encounter (see BATTLE SCENE below).
+    battleHp: 0, battleMaxHp: 0
   };
   wren = {
     x: WREN_HOME_X, y: WREN_HOME_Y, targetX: WREN_HOME_X, targetY: WREN_HOME_Y,
@@ -1874,6 +1961,7 @@ function resetGame() {
   else if (activeOverlay === 'merge') { activeOverlay = null; paused = false; mergePanel.style.display = 'none'; }
   else if (activeOverlay === 'bonded') { activeOverlay = null; paused = false; bondedPanel.style.display = 'none'; }
   else if (activeOverlay === 'estranged') { activeOverlay = null; paused = false; estrangedPanel.style.display = 'none'; }
+  else if (activeOverlay === 'battle') { activeOverlay = null; paused = false; battlePanel.style.display = 'none'; }
   joyReset();
   lastTime = performance.now();
   requestAnimationFrame(loop);
@@ -3027,20 +3115,12 @@ function updatePredator(dt) {
   if (predator.state === 'approaching') {
     const d = dist(predator.x, predator.y, player.x, player.y);
     if (d < cfg.engageRange) {
-      predator.state = 'telegraph';
-      predator.stateTimer = cfg.telegraphMs;
-      predator.lungeFromX = predator.x; predator.lungeFromY = predator.y;
-      predator.lungeToX = player.x; predator.lungeToY = player.y;
-      predator.blockWindowUsed = false;
-      predator.noSpearWarned = false;
-      // v0.29 fix (playtest finding #3): the block/dodge mechanic used to only be explained in the
-      // How-To overlay, which nothing prompts a first-time player to open — the only in-fight cue
-      // was the pulsing red triangle. This fires once, ever (see firstTelegraphSeen up top), the
-      // very first time any predator telegraphs a charge, so the lesson lands right when it matters.
-      if (!firstTelegraphSeen) {
-        firstTelegraphSeen = true;
-        showBanner('Press SPACE to block or dodge!', 2200);
-      }
+      // v0.32 — the predator closing to engage range is still exactly where it always was; from
+      // here on, the fight itself moves into the turn-based battle scene instead of resolving
+      // live on the map (see enterBattle() in the BATTLE SCENE section below). The old telegraph/
+      // lunging/recoil/fleeing states below this branch are no longer entered from here, but are
+      // left in place rather than deleted — low-risk, and keeps this diff focused.
+      enterBattle();
     } else {
       const ang = Math.atan2(player.y - predator.y, player.x - predator.x);
       // Predator Swarm (v0.27) — the single active predator closes faster during a swarm, on
@@ -3130,6 +3210,264 @@ function updatePredator(dt) {
     }
   }
 }
+
+// ================= BATTLE SCENE (v0.32) =================
+// The moment a predator closes to engage range (see updatePredator()'s 'approaching' branch
+// above), the fight moves off the live map and into this turn-based scene instead — a classic-FF-
+// style menu (Attack/Defend/Item/Flee/Spare), no reflex timing required. Reuses every existing
+// predator/spear/inventory number it can (PREDATOR_TYPES' hitsToFlee/damage, spearMaxDurability's
+// upgrades, the existing food/heal item amounts) rather than inventing a parallel stat system.
+//
+// Battle HP is a new derived value (hitsToFlee * 12) rather than reusing hitsToFlee directly, so
+// a fight can still meaningfully cost several rounds even though every Attack now guarantees a
+// hit (there's no timing window to miss anymore — the whole point of moving off the reflex model).
+// Spare only appears once the predator is at or below half its battle HP — "weakened enough to let
+// go," the same spirit as the old real-time flee threshold — and, like the old clean flee, always
+// succeeds and raises island trust; Flee is the escape option and is NOT guaranteed (harder to
+// shake a faster species), on a miss the predator gets a free hit in. Wren (Duo, accompanying)
+// never gets a menu of her own — per her whole existing design principle, she acts on her own each
+// round via the same wrenHuntBonusChance(trust) tiers Go Hunting already uses.
+function playerAttackDamage() {
+  let dmg = 9 + Math.floor(Math.random() * 5); // 9-13 base
+  if (player.spearUpgraded) dmg += 2;
+  if (player.spearReinforced) dmg += 2;
+  if (player.spearMastered) dmg += 2;
+  return dmg;
+}
+
+function battleFleeChance(cfg) {
+  return Math.min(0.7, Math.max(0.35, 0.75 - (cfg.fleeSpeed - 200) / 400));
+}
+
+function addBattleLog(text) {
+  const line = document.createElement('div');
+  line.textContent = text;
+  battleLogEl.appendChild(line);
+  while (battleLogEl.children.length > 6) battleLogEl.removeChild(battleLogEl.firstChild);
+  battleLogEl.scrollTop = battleLogEl.scrollHeight;
+}
+
+function updateBattleUI() {
+  battlePlayerHpFillEl.style.width = Math.max(0, player.health) + '%';
+  battlePlayerHpTextEl.textContent = Math.max(0, Math.round(player.health)) + '/100';
+  const pct = predator.battleMaxHp > 0 ? Math.max(0, predator.battleHp / predator.battleMaxHp * 100) : 0;
+  battleEnemyHpFillEl.style.width = pct + '%';
+  battleEnemyHpTextEl.textContent = Math.max(0, Math.round(predator.battleHp)) + '/' + predator.battleMaxHp;
+  const weakened = predator.battleHp > 0 && predator.battleHp <= predator.battleMaxHp * 0.5;
+  battleSpareBtn.style.display = weakened ? 'block' : 'none';
+  battleAttackBtn.disabled = player.spearDurability <= 0;
+  battleAttackBtn.textContent = player.spearDurability <= 0 ? '⚔️ No Spear!' : '⚔️ Attack';
+}
+
+function enterBattle() {
+  const cfg = predator.cfg;
+  predator.battleMaxHp = cfg.hitsToFlee * 12;
+  predator.battleHp = predator.battleMaxHp;
+  player.battleDefending = false;
+  activeOverlay = 'battle';
+  paused = true;
+  battleTitleEl.textContent = 'A ' + cfg.label + ' blocks your path!';
+  battlePlayerNameEl.textContent = playerName;
+  battleEnemyNameEl.textContent = cfg.label.replace(/\b\w/g, c => c.toUpperCase());
+  battleLogEl.innerHTML = '';
+  battleCloseItemMenu();
+  addBattleLog(PREDATOR_SPAWN_LINES[predator.type] || ('A ' + cfg.label + ' squares off with you!'));
+  // v0.32 — reuses the same one-time, per-browser-session tutorial flag the old real-time
+  // telegraph cue used (see v0.29's "Known bugs fixed") — the mechanic it explained has moved
+  // into this scene, so the flag now fires here instead.
+  if (!firstTelegraphSeen) {
+    firstTelegraphSeen = true;
+    addBattleLog('Pick Attack, Defend, Item, or Flee each round — no timing needed, just choose.');
+  }
+  updateBattleUI();
+  battlePanel.style.display = 'flex';
+  ensureAudio();
+}
+
+function exitBattleUI() {
+  activeOverlay = null;
+  paused = false;
+  battlePanel.style.display = 'none';
+  battleItemMenuEl.style.display = 'none';
+  battleItemMenuEl.innerHTML = '';
+  battleMenuEl.style.display = 'flex';
+  lastTime = performance.now();
+}
+
+// v0.32 — the parallel Wren-injury check for the battle scene. Functionally the same rules as
+// maybeInjureWren() below (chance, floor, flee trigger) but without a distance/positioning gate —
+// the battle scene has no x/y of its own, so "she's in the fight" already implies "she's in range."
+function battleMaybeInjureWren(cfg) {
+  if (gameMode !== 'duo' || !wren.accompanying || wren.fleeingHome || currentScreen !== wren.screen) return;
+  if (Math.random() >= WREN_HIT_CHANCE) return;
+  wren.health = Math.max(WREN_HEALTH_FLOOR, wren.health - cfg.damage * WREN_HIT_DAMAGE_MULT);
+  wren.flashUntil = performance.now() + 250;
+  adjustIslandTrust(-ISLAND_TRUST_WREN_HARM_PENALTY);
+  if (wren.health <= WREN_FLEE_HEALTH_THRESHOLD) {
+    triggerWrenFlee();
+    addBattleLog(wrenName + " is hurt and pulls back toward camp.");
+  } else {
+    addBattleLog(wrenName + ' flinches and stumbles back!');
+  }
+}
+
+// She never gets a menu — same no-command-menu principle as the rest of her design. Rolled once,
+// only on the player's own Attack action, the same "alongside a landed hit" framing the old
+// Go-Hunting bonus-hit tiers already used — just no longer gated to fromHunt encounters only.
+function battleWrenAssist() {
+  if (gameMode !== 'duo' || !wren.accompanying || wren.fleeingHome || currentScreen !== wren.screen) return 0;
+  if (Math.random() >= wrenHuntBonusChance(trust)) return 0;
+  const dmg = 8 + Math.floor(Math.random() * 6);
+  predator.battleHp = Math.max(0, predator.battleHp - dmg);
+  return dmg;
+}
+
+function battlePredatorCounter(cfg) {
+  let dmg = cfg.damage;
+  if (player.battleDefending) dmg = Math.round(dmg * 0.45);
+  player.battleDefending = false;
+  player.health -= dmg;
+  sfx.hit();
+  addBattleLog('The ' + cfg.label + ' strikes back! -' + dmg + ' health.');
+  updateHud();
+  if (player.health <= 0) {
+    player.health = 0;
+    exitBattleUI();
+    killPlayer(predator.type);
+    return;
+  }
+  battleMaybeInjureWren(cfg);
+  updateBattleUI();
+}
+
+function battleWin() {
+  exitBattleUI();
+  killPredator();
+}
+
+function battleAttack() {
+  if (!predator.active || activeOverlay !== 'battle') return;
+  const cfg = predator.cfg;
+  if (player.spearDurability <= 0) { addBattleLog('No spear to fight with — try Defend, Item, or Flee.'); return; }
+  player.spearDurability -= 1;
+  const dmg = playerAttackDamage();
+  predator.battleHp = Math.max(0, predator.battleHp - dmg);
+  sfx.block();
+  let line = 'You land a solid hit! -' + dmg + ' to the ' + cfg.label + '.';
+  const assistDmg = battleWrenAssist();
+  if (assistDmg) line += ' ' + wrenName + ' drives her spear in too! -' + assistDmg + '.';
+  if (player.spearDurability <= 0) { sfx.break(); line += ' Your spear finally gives out!'; }
+  addBattleLog(line);
+  updateHud();
+  updateBattleUI();
+  if (predator.battleHp <= 0) { battleWin(); return; }
+  battlePredatorCounter(cfg);
+}
+
+function battleDefend() {
+  if (!predator.active || activeOverlay !== 'battle') return;
+  const cfg = predator.cfg;
+  player.battleDefending = true;
+  addBattleLog('You brace and cover up, ready for the counter.');
+  battlePredatorCounter(cfg);
+}
+
+function battleItems() {
+  const eff = foodEfficiency(currentDay());
+  const items = [];
+  if ((inventory.herb || 0) >= HERB_PER_BANDAGE && player.health < 100) {
+    items.push({ icon: '🌿', label: 'Bandage', desc: 'Heal ' + BANDAGE_HEAL_AMOUNT + ' HP (uses ' + HERB_PER_BANDAGE + ' herb)',
+      apply: () => { inventory.herb -= HERB_PER_BANDAGE; player.health = Math.min(100, player.health + BANDAGE_HEAL_AMOUNT); return 'You wrap the wound. +' + BANDAGE_HEAL_AMOUNT + ' health.'; } });
+  }
+  if ((inventory.tablets || 0) > 0 && player.thirst < 99) {
+    items.push({ icon: '💊', label: 'Purification Tablet', desc: 'Ease thirst ' + TABLET_THIRST_AMOUNT,
+      apply: () => { inventory.tablets -= 1; player.thirst = Math.min(100, player.thirst + TABLET_THIRST_AMOUNT * eff); return 'You chew a tablet. Thirst eased.'; } });
+  }
+  if ((inventory.cookedMeat || 0) > 0 && player.hunger < 99) {
+    items.push({ icon: '🍖', label: 'Cooked Meat', desc: 'Restore ' + COOKED_MEAT_EAT_AMOUNT + ' hunger',
+      apply: () => { inventory.cookedMeat -= 1; player.hunger = Math.min(100, player.hunger + COOKED_MEAT_EAT_AMOUNT * eff); return 'You eat the cooked meat. Hunger eased.'; } });
+  }
+  if ((inventory.meat || 0) > 0 && player.hunger < 99) {
+    items.push({ icon: '🥩', label: 'Raw Meat', desc: 'Restore ' + RAW_MEAT_EAT_AMOUNT + ' hunger',
+      apply: () => { inventory.meat -= 1; player.hunger = Math.min(100, player.hunger + RAW_MEAT_EAT_AMOUNT * eff); return 'You choke down raw meat. Hunger eased.'; } });
+  }
+  if ((inventory.berries || 0) > 0 && player.hunger < 99) {
+    items.push({ icon: '🫐', label: 'Berries', desc: 'Restore ' + BERRIES_EAT_AMOUNT + ' hunger',
+      apply: () => { inventory.berries -= 1; player.hunger = Math.min(100, player.hunger + BERRIES_EAT_AMOUNT * eff); return 'You eat a handful of berries. Hunger eased.'; } });
+  }
+  return items;
+}
+
+function battleOpenItemMenu() {
+  if (!predator.active || activeOverlay !== 'battle') return;
+  const items = battleItems();
+  if (!items.length) { addBattleLog("You check your pack — nothing useful to use right now."); return; }
+  battleMenuEl.style.display = 'none';
+  battleItemMenuEl.style.display = 'flex';
+  battleItemMenuEl.innerHTML = '';
+  items.forEach(it => {
+    const card = document.createElement('button');
+    card.className = 'battleItemCard';
+    card.innerHTML = '<span style="font-size:18px">' + it.icon + '</span><span><b>' + it.label + '</b><br><span class="battleItemDesc">' + it.desc + '</span></span>';
+    card.onclick = () => battleUseItem(it);
+    battleItemMenuEl.appendChild(card);
+  });
+  const back = document.createElement('button');
+  back.id = 'battleItemBackBtn';
+  back.className = 'battleBtn';
+  back.textContent = '← Back';
+  back.onclick = battleCloseItemMenu;
+  battleItemMenuEl.appendChild(back);
+}
+function battleCloseItemMenu() {
+  battleItemMenuEl.style.display = 'none';
+  battleItemMenuEl.innerHTML = '';
+  battleMenuEl.style.display = 'flex';
+}
+function battleUseItem(it) {
+  if (!predator.active || activeOverlay !== 'battle') return;
+  const cfg = predator.cfg;
+  const line = it.apply();
+  sfx.eat();
+  addBattleLog(line);
+  battleCloseItemMenu();
+  updateHud();
+  battlePredatorCounter(cfg);
+}
+
+function battleFlee() {
+  if (!predator.active || activeOverlay !== 'battle') return;
+  const cfg = predator.cfg;
+  const chance = battleFleeChance(cfg);
+  if (Math.random() < chance) {
+    sfx.flee();
+    stats.predatorsRepelled++;
+    predator.active = false;
+    predator.cooldownTimer = (15000 + Math.random()*8000) * predatorCooldownMult(currentDay()) * surgeSpawnCooldownMult();
+    exitBattleUI();
+    showBanner('You break off and put distance between you — it doesn\'t chase.', 2400);
+  } else {
+    addBattleLog("You can't shake it — it's still on you!");
+    battlePredatorCounter(cfg);
+  }
+}
+
+function battleSpare() {
+  if (!predator.active || activeOverlay !== 'battle') return;
+  const cfg = predator.cfg;
+  stats.predatorsRepelled++;
+  predator.active = false;
+  predator.cooldownTimer = (15000 + Math.random()*8000) * predatorCooldownMult(currentDay()) * surgeSpawnCooldownMult();
+  adjustIslandTrust(ISLAND_TRUST_SPARED_RAISE);
+  exitBattleUI();
+  showBanner(predatorFleeLine(predator.type), 2600);
+}
+
+battleAttackBtn.onclick = battleAttack;
+battleDefendBtn.onclick = battleDefend;
+battleItemBtn.onclick = battleOpenItemMenu;
+battleSpareBtn.onclick = battleSpare;
+battleFleeBtn.onclick = battleFlee;
 
 // v0.26 — Wren's hidden injury. Called from updatePredator()'s lunge resolution, once per lunge,
 // regardless of whether the player themself was hit. She only has a chance to be caught at all if
