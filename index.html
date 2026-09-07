@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.36</title>
+<title>Crash Beach — Prototype v0.37</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -333,7 +333,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.36 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too.</p>
+  <p class="note">Prototype v0.37 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -1567,6 +1567,50 @@ function csPlaneSilhouette(x, y, scale, tilt, dx) {
     ctx.beginPath(); ctx.arc(sx, sy, (10 + i * 4) * scale, 0, Math.PI * 2); ctx.fill();
   }
 }
+// v0.37 — a darkened sky/ocean backdrop for the storm-tier cutscenes, parameterized by intensity
+// (1-5, matching STORM_TIERS' order) rather than csSkyOceanBackdrop's plain boolean `stormy` —
+// higher intensity means a darker, more saturated-grey wash so all 5 tiers read as genuinely
+// escalating even though they share this one backdrop function.
+function csStormySky(x, y, w, h, intensity) {
+  const m = intensity / 5;
+  const g = ctx.createLinearGradient(x, y, x, y + h * 0.6);
+  g.addColorStop(0, `rgb(${Math.round(28 - m * 14)},${Math.round(34 - m * 16)},${Math.round(44 - m * 14)})`);
+  g.addColorStop(1, `rgb(${Math.round(70 - m * 24)},${Math.round(80 - m * 26)},${Math.round(96 - m * 30)})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y, w, h * 0.6);
+  ctx.fillStyle = `rgba(0,0,0,${(0.1 + m * 0.22).toFixed(3)})`;
+  ctx.fillRect(x, y, w, h * 0.6);
+  // a darkened sand band fills the rest of the frame — otherwise the bottom of the scene is left
+  // transparent and the page behind the canvas bleeds through (a real bug caught via screenshot
+  // review, same class as v0.36's HUD-visibility fix — see "Known bugs fixed").
+  const sandG = ctx.createLinearGradient(x, y + h * 0.6, x, y + h);
+  sandG.addColorStop(0, `rgb(${Math.round(130 - m * 55)},${Math.round(118 - m * 50)},${Math.round(95 - m * 40)})`);
+  sandG.addColorStop(1, `rgb(${Math.round(100 - m * 45)},${Math.round(90 - m * 40)},${Math.round(72 - m * 32)})`);
+  ctx.fillStyle = sandG;
+  ctx.fillRect(x, y + h * 0.6, w, h * 0.4);
+}
+// v0.37 — diagonal wind-driven rain, density/speed/length all scaled by `intensity` (1-5) so the
+// same simple line-drawing loop reads as anything from a light sprinkle (Squall) to a total
+// whiteout (Hurricane). Reused by both the storm cutscenes and could later back a live-gameplay
+// overlay too, though drawStormOverlay() keeps its own simpler version for that (see below).
+function csRainStreaks(x, y, w, h, intensity, t) {
+  ctx.save();
+  ctx.strokeStyle = `rgba(210,222,235,${(0.28 + intensity * 0.07).toFixed(3)})`;
+  ctx.lineWidth = 1.5 + intensity * 0.3;
+  const count = 18 + intensity * 16;
+  const speed = 260 + intensity * 140;
+  const slant = 10 + intensity * 6;
+  for (let i = 0; i < count; i++) {
+    const seed = i * 53.7;
+    const px = x + ((seed * 2.3 + t * speed * 0.5) % (w + 60)) - 30;
+    const py = y + ((seed * 3.1 + t * speed) % (h + 60)) - 30;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px - slant, py + 26 + intensity * 4);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 
 // ---- the cutscene library itself ----
 const CUTSCENES = {
@@ -1693,6 +1737,130 @@ const CUTSCENES = {
         const breathe = Math.sin(t * 2.2) * 2;
         csFigure(430 + breathe * 0.2, 520, 1.15, { facing: 1, bodyColor: theme.player });
         csFigure(780 - breathe * 0.2, 520, 1.15, { facing: -1, bodyColor: '#a8552f', hairColor: '#a83f2b', raiseStick: true });
+      },
+    },
+  ],
+  // v0.37 — Storm tiers. Five short (2-panel) cutscenes, one per STORM_TIERS entry, each playing
+  // once per run the first time that tier actually occurs (see startSurge()) — every repeat of an
+  // already-seen tier gets only a quick banner instead (the "full vs quick" split Sean asked for).
+  // Disclosed simplification, same precedent as v0.18's wild dogs / v0.27's single predator slot:
+  // all 5 share one parameterized art routine (csStormySky/csRainStreaks/csPalmTree's own `sway`
+  // argument, scaled by the tier's own `intensity`) rather than five fully bespoke art sets — the
+  // predator cutscenes (still queued) are the ones Sean specifically asked to be non-shared.
+  stormSquall: [
+    {
+      duration: 3600, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 260, zoom: 1.02 }, camTo: { cx: 450, cy: 280, zoom: 1.15 },
+      caption: 'The wind picks up out over the water — nothing serious, but it’s coming this way.',
+      draw(t, theme) {
+        csStormySky(0, 0, 900, 600, 1);
+        csRainStreaks(0, 0, 900, 600, 1, t);
+        csPalmTree(700, 560, 1.0, Math.sin(t * 1.6) * 0.22, theme);
+      },
+    },
+    {
+      duration: 3200, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 320, zoom: 1.15 }, camTo: { cx: 450, cy: 300, zoom: 1.05 },
+      caption: 'A light squall rolls over the beach — annoying more than dangerous.',
+      draw(t, theme) {
+        csStormySky(0, 0, 900, 600, 1);
+        csRainStreaks(0, 0, 900, 600, 1, t);
+        csPalmTree(220, 560, 0.9, Math.sin(t * 1.6 + 1) * 0.22, theme);
+        csFigure(500, 500, 0.9, { facing: -1, bodyColor: theme.player });
+      },
+    },
+  ],
+  stormGale: [
+    {
+      duration: 3800, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 260, zoom: 1.02 }, camTo: { cx: 450, cy: 280, zoom: 1.16 },
+      caption: 'The breeze sharpens into something with teeth. The palms feel it first.',
+      draw(t, theme) {
+        csStormySky(0, 0, 900, 600, 2);
+        csRainStreaks(0, 0, 900, 600, 2, t);
+        csPalmTree(700, 560, 1.0, Math.sin(t * 2.0) * 0.32, theme);
+        csPalmTree(120, 570, 0.75, Math.sin(t * 2.0 + 1.2) * 0.32, theme);
+      },
+    },
+    {
+      duration: 3400, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 320, zoom: 1.16 }, camTo: { cx: 450, cy: 300, zoom: 1.05 },
+      caption: 'A real gale kicks up loose sand and bends every tree in sight.',
+      draw(t, theme) {
+        csStormySky(0, 0, 900, 600, 2);
+        csRainStreaks(0, 0, 900, 600, 2, t);
+        csPalmTree(220, 560, 0.9, Math.sin(t * 2.0 + 1) * 0.32, theme);
+        csFigure(560, 500, 0.9, { facing: -1, bodyColor: theme.player, armsUp: true });
+      },
+    },
+  ],
+  stormStorm: [
+    {
+      duration: 4000, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 240, zoom: 1.02 }, camTo: { cx: 450, cy: 280, zoom: 1.18 },
+      caption: 'Dark clouds roll in fast, swallowing the horizon whole.',
+      draw(t, theme) {
+        csStormySky(0, 0, 900, 600, 3);
+        csRainStreaks(0, 0, 900, 600, 3, t);
+        csPalmTree(700, 560, 1.0, Math.sin(t * 2.4) * 0.4, theme);
+        csPalmTree(120, 570, 0.75, Math.sin(t * 2.4 + 1.2) * 0.4, theme);
+      },
+    },
+    {
+      duration: 3600, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 320, zoom: 1.18 }, camTo: { cx: 450, cy: 300, zoom: 1.05 },
+      caption: 'The storm breaks hard — rain sheets sideways, and the light goes gray.',
+      draw(t, theme) {
+        csStormySky(0, 0, 900, 600, 3);
+        csRainStreaks(0, 0, 900, 600, 3, t);
+        csFigure(500, 500, 0.9, { facing: -1, bodyColor: theme.player, armsUp: true });
+      },
+    },
+  ],
+  stormTempest: [
+    {
+      duration: 4200, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 240, zoom: 1.02 }, camTo: { cx: 450, cy: 280, zoom: 1.2 },
+      caption: 'The sky turns the color of a bruise. This one means business.',
+      draw(t, theme) {
+        csStormySky(0, 0, 900, 600, 4);
+        csRainStreaks(0, 0, 900, 600, 4, t);
+        csPalmTree(700, 560, 1.0, Math.sin(t * 2.9) * 0.5, theme);
+        csPalmTree(120, 570, 0.75, Math.sin(t * 2.9 + 1.2) * 0.5, theme);
+        csBush(450, 560, 1.4, Math.sin(t * 5) * 14, theme);
+      },
+    },
+    {
+      duration: 3800, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 320, zoom: 1.2 }, camTo: { cx: 450, cy: 300, zoom: 1.05 },
+      caption: 'A tempest tears across the island — branches snap, and the ocean churns white.',
+      draw(t, theme) {
+        csStormySky(0, 0, 900, 600, 4);
+        csRainStreaks(0, 0, 900, 600, 4, t);
+        csFigure(500, 500, 0.9, { facing: -1, bodyColor: theme.player, armsUp: true });
+      },
+    },
+  ],
+  stormHurricane: [
+    {
+      duration: 4400, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 240, zoom: 1.02 }, camTo: { cx: 450, cy: 280, zoom: 1.22 },
+      caption: 'The barometer, if you had one, would be screaming. This is the real thing.',
+      draw(t, theme) {
+        csStormySky(0, 0, 900, 600, 5);
+        csRainStreaks(0, 0, 900, 600, 5, t);
+        csPalmTree(700, 560, 1.0, Math.sin(t * 3.4) * 0.62, theme);
+        csPalmTree(120, 570, 0.75, Math.sin(t * 3.4 + 1.2) * 0.62, theme);
+      },
+    },
+    {
+      duration: 4200, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 320, zoom: 1.22 }, camTo: { cx: 450, cy: 300, zoom: 1.05 },
+      caption: 'A full hurricane swallows the island whole — wind, rain, and roar, all at once.',
+      draw(t, theme) {
+        csStormySky(0, 0, 900, 600, 5);
+        csRainStreaks(0, 0, 900, 600, 5, t);
+        csFigure(500, 500, 0.85, { facing: -1, bodyColor: theme.player, armsUp: true });
       },
     },
   ],
@@ -2383,7 +2551,7 @@ function renderCraftPanel() {
   }
 }
 
-let player, predator, wren, trust, water, palm, gatherables, fishSpot, inventory, elapsed, encounterMsgTimer, dead, decorations, stats, currentScreen, screenData, shelter, tide, tideTimer, surge;
+let player, predator, wren, trust, water, palm, gatherables, fishSpot, inventory, elapsed, encounterMsgTimer, dead, decorations, stats, currentScreen, screenData, shelter, tide, tideTimer, surge, stormTierSeen;
 // v0.33 — the last in-game day player leveling awarded day-survival XP for (see awardPlayerXp()'s
 // caller in updateSurvivalStats()). currentDay() deliberately keeps no state of its own (see its
 // own comment above), so this is the one place that remembers "have we already paid out for the
@@ -2684,10 +2852,17 @@ function resetGame() {
   surge = {
     active: null, timer: 0,
     cooldownTimer: SURGE_COOLDOWN_MIN_MS + Math.random() * (SURGE_COOLDOWN_MAX_MS - SURGE_COOLDOWN_MIN_MS),
-    lastType: null
+    lastType: null,
+    stormTier: null, // v0.37 — which STORM_TIERS entry the current/last storm rolled, see pickStormTier()
   };
   surgeIndicatorEl.style.display = 'none';
   surgeIndicatorEl.className = '';
+  // v0.37 — Storm tiers: resets per run, same as every other milestone flag (wren.met, etc.) —
+  // NOT browser-permanent like the crash-landing intro. Sean confirmed this explicitly (see design
+  // doc open question 13) rather than it being assumed. The first time each tier actually occurs
+  // in THIS run, startSurge() plays its full cutscene; every repeat within the same run gets only
+  // a quick banner (STORM_TIER_QUICK_LINES).
+  stormTierSeen = { squall: false, gale: false, storm: false, tempest: false, hurricane: false };
   // v0.28 — Island Trust: a completely separate hidden global from Wren's `trust` above (see the
   // ISLAND TRUST section for the full design note). Never rendered anywhere — nothing here to
   // reset besides the state itself.
@@ -3235,21 +3410,72 @@ function pickSurgeType() {
   return choices[Math.floor(Math.random() * choices.length)];
 }
 
-const STORM_SPEED_MULT = 0.62;                // player moves at 62% speed for the storm's duration
-const STORM_EXPOSURE_CHANCE = 0.5;            // 50/50 — real, not certain
-const STORM_EXPOSURE_HUNGER_LOSS = 10;
-const STORM_EXPOSURE_THIRST_LOSS = 10;
+const STORM_SPEED_MULT = 0.62;                // fallback/legacy default — real storms now read their own tier's speedMult (see STORM_TIERS below)
 const SWARM_SPAWN_COOLDOWN_MULT = 0.15;       // spawn cooldowns collapse to 15% of their normal length
 const SWARM_APPROACH_SPEED_MULT = 1.3;        // an approaching predator closes 30% faster during a swarm
 
+// ================= STORM TIERS (v0.37) =================
+// Planned in the same 2026-09-06/07 interview as the cutscene arc itself (see design doc section
+// 11): a brand-new 5-tier severity system for the storm surge type, "similar to a hurricane
+// scale" per Sean's own framing. Which tier a given storm rolls escalates with day count (Sean's
+// choice over tying it to islandTrust or pure chance) — early runs see almost only Squall/Gale,
+// while a long run can roll all the way up to Hurricane. Four things scale per tier, per Sean's
+// picks: movement penalty, unsheltered exposure cost, visual darkness, and duration. `storm`
+// itself (order 3) is deliberately left at today's exact pre-v0.37 numbers (0.62x speed, 50%
+// exposure chance, 10/10 hunger/thirst, 1.0x darkness, 55s) so a mid-tier storm reads exactly as
+// it always has — the new tiers bracket it rather than replacing its balance.
+const STORM_TIERS = {
+  squall:    { key: 'squall',    name: 'Squall',    order: 1, speedMult: 0.85, exposureChance: 0.15, exposureHungerLoss: 5,  exposureThirstLoss: 5,  darknessMult: 0.55, durationMs: 38000 },
+  gale:      { key: 'gale',      name: 'Gale',      order: 2, speedMult: 0.74, exposureChance: 0.28, exposureHungerLoss: 7,  exposureThirstLoss: 7,  darknessMult: 0.75, durationMs: 46000 },
+  storm:     { key: 'storm',     name: 'Storm',     order: 3, speedMult: 0.62, exposureChance: 0.50, exposureHungerLoss: 10, exposureThirstLoss: 10, darknessMult: 1.00, durationMs: 55000 },
+  tempest:   { key: 'tempest',   name: 'Tempest',   order: 4, speedMult: 0.50, exposureChance: 0.65, exposureHungerLoss: 14, exposureThirstLoss: 14, darknessMult: 1.30, durationMs: 66000 },
+  hurricane: { key: 'hurricane', name: 'Hurricane', order: 5, speedMult: 0.38, exposureChance: 0.80, exposureHungerLoss: 20, exposureThirstLoss: 20, darknessMult: 1.60, durationMs: 78000 },
+};
+const STORM_TIER_ORDER = ['squall', 'gale', 'storm', 'tempest', 'hurricane'];
+// A day-scaled shift nudges the severity roll upward rather than a per-tier weight table — simpler
+// to reason about and to keep floored/capped like every other escalation curve in the game. At
+// day 1 the roll is unshifted (mostly Squall/Gale, Hurricane a rare surprise); by the cap it's
+// shifted enough that Tempest/Hurricane become common, without ever making low tiers impossible.
+const STORM_TIER_SHIFT_CAP = 0.42;
+const STORM_TIER_SHIFT_PER_DAY = 0.022;
+// v0.30-pattern Story mode: the tier curve still rises, just far more slowly and to a lower cap —
+// same relationship Story already has to every other day-scaled curve in the game.
+const STORM_TIER_SHIFT_CAP_STORY = 0.18;
+const STORM_TIER_SHIFT_PER_DAY_STORY = 0.01;
+const STORM_TIER_BASE_CUTOFFS = [0.52, 0.79, 0.93, 0.985]; // 4 cutoffs dividing the roll into 5 bands
+function pickStormTier(day) {
+  const cap = gameDifficulty === 'story' ? STORM_TIER_SHIFT_CAP_STORY : STORM_TIER_SHIFT_CAP;
+  const perDay = gameDifficulty === 'story' ? STORM_TIER_SHIFT_PER_DAY_STORY : STORM_TIER_SHIFT_PER_DAY;
+  const shift = Math.min(cap, (day - 1) * perDay);
+  const roll = Math.min(1, Math.random() + shift);
+  for (let i = 0; i < STORM_TIER_BASE_CUTOFFS.length; i++) {
+    if (roll < STORM_TIER_BASE_CUTOFFS[i]) return STORM_TIER_ORDER[i];
+  }
+  return STORM_TIER_ORDER[STORM_TIER_ORDER.length - 1];
+}
+// The full-cutscene banner (first time this tier occurs THIS run, right after the cutscene hands
+// off) vs. the quick banner (every repeat within the same run — no cutscene, just this line).
+const STORM_TIER_FIRST_LINES = {
+  squall: 'A light squall settles over the beach.',
+  gale: 'The gale is here in full — hang onto anything loose.',
+  storm: 'The storm breaks — rain sheets sideways across the island.',
+  tempest: 'The tempest hits — branches down, visibility dropping fast.',
+  hurricane: 'The hurricane is here. This is as bad as the island gets.',
+};
+const STORM_TIER_QUICK_LINES = {
+  squall: "Another squall blows through — nothing you haven't handled before.",
+  gale: 'A gale picks up again — the wind means it this time too.',
+  storm: 'Dark clouds roll in again — a storm is closing over the island.',
+  tempest: 'The sky bruises over again — another tempest is bearing down.',
+  hurricane: 'The wind drops, then slams back — another hurricane is on you.',
+};
+
 const SURGE_LABELS = { storm: '⛈ Storm', swarm: '🐾 Predator Swarm', dryspell: '🌵 Dry Spell' };
 const SURGE_START_LINES = {
-  storm: 'Dark clouds roll in fast — a storm is closing over the island.',
   swarm: 'Something has the wildlife stirred up — predators are moving in numbers.',
   dryspell: "The ground's already looking parched — a dry spell is settling in. Gathering will be slow going for a while."
 };
 const SURGE_END_LINES = {
-  storm: 'The storm finally breaks and rolls back out to sea.',
   swarm: 'The woods go quiet again — whatever stirred them up has passed.',
   dryspell: "The dry spell lifts — the island's gathering spots start recovering again."
 };
@@ -3262,10 +3488,33 @@ function surgeSpawnCooldownMult() {
   return surge.active === 'swarm' ? SWARM_SPAWN_COOLDOWN_MULT : 1;
 }
 
+// v0.37 — storms now branch: the first time a given tier occurs THIS run, a full cutscene plays
+// first (see CUTSCENES' storm* entries) and the actual timer/effects only start once it hands
+// off; every repeat of an already-seen tier skips straight to the quick banner, exactly like
+// every other surge type always has. Only ever called from updateSurge() while `!paused` (see its
+// own comment), so activeOverlay is guaranteed clear here — same precondition triggerFirstMeeting()
+// and confirmNames() already rely on before calling playCutscene().
 function startSurge() {
   const type = pickSurgeType();
   surge.active = type;
   surge.lastType = type;
+  if (type === 'storm') {
+    const tierKey = pickStormTier(currentDay());
+    surge.stormTier = tierKey;
+    if (!stormTierSeen[tierKey]) {
+      stormTierSeen[tierKey] = true;
+      const csId = 'storm' + tierKey[0].toUpperCase() + tierKey.slice(1);
+      playCutscene(csId, () => {
+        surge.timer = STORM_TIERS[tierKey].durationMs;
+        showBanner(STORM_TIER_FIRST_LINES[tierKey], 3200);
+        activeOverlay = null; paused = false; lastTime = performance.now();
+      });
+      return; // timer/banner deliberately deferred to the cutscene's onComplete above
+    }
+    surge.timer = STORM_TIERS[tierKey].durationMs;
+    showBanner(STORM_TIER_QUICK_LINES[tierKey], 2600);
+    return;
+  }
   surge.timer = SURGE_DURATION_MS;
   showBanner(SURGE_START_LINES[type], 3200);
   if (type === 'swarm' && screenData[currentScreen] && screenData[currentScreen].dangerous && !predator.active) {
@@ -3275,24 +3524,30 @@ function startSurge() {
 
 function endSurge() {
   const type = surge.active;
+  const tierKey = surge.stormTier;
   surge.active = null;
   surge.timer = 0;
+  surge.stormTier = null;
   // Island Trust (v0.28) — islandTrustSurgeFreqMult() composes on top of the existing day-based
   // curve, same pattern as everything else that touches this timer.
   surge.cooldownTimer = (SURGE_COOLDOWN_MIN_MS + Math.random() * (SURGE_COOLDOWN_MAX_MS - SURGE_COOLDOWN_MIN_MS)) * surgeCooldownMult(currentDay()) * islandTrustSurgeFreqMult();
-  let line = SURGE_END_LINES[type];
   // Storm's exposure cost resolves once, right here, rather than as a continuous per-frame roll
   // while the storm is active — one clean, testable checkpoint, and it reads to the player as
-  // "did I make it through that storm okay" rather than a string of small hits during it.
-  if (type === 'storm') {
+  // "did I make it through that storm okay" rather than a string of small hits during it. Now
+  // reads the tier's own exposure numbers instead of one flat set for every storm.
+  if (type === 'storm' && tierKey) {
+    const tier = STORM_TIERS[tierKey];
+    let line = 'The ' + tier.name + ' finally breaks and rolls back out to sea.';
     const sheltered = !screenData[currentScreen].dangerous;
-    if (!sheltered && Math.random() < STORM_EXPOSURE_CHANCE) {
-      player.hunger = Math.max(0, player.hunger - STORM_EXPOSURE_HUNGER_LOSS);
-      player.thirst = Math.max(0, player.thirst - STORM_EXPOSURE_THIRST_LOSS);
-      line = 'Caught out in the open, the storm took its toll before it broke. (-' + STORM_EXPOSURE_HUNGER_LOSS + ' hunger, -' + STORM_EXPOSURE_THIRST_LOSS + ' thirst)';
+    if (!sheltered && Math.random() < tier.exposureChance) {
+      player.hunger = Math.max(0, player.hunger - tier.exposureHungerLoss);
+      player.thirst = Math.max(0, player.thirst - tier.exposureThirstLoss);
+      line = 'Caught out in the open, the ' + tier.name.toLowerCase() + ' took its toll before it broke. (-' + tier.exposureHungerLoss + ' hunger, -' + tier.exposureThirstLoss + ' thirst)';
     }
+    showBanner(line, 2800);
+    return;
   }
-  showBanner(line, 2800);
+  showBanner(SURGE_END_LINES[type], 2800);
 }
 
 function updateSurvivalStats(dt) {
@@ -3828,7 +4083,12 @@ function updatePlayer(dt) {
   // Island Trust (v0.28) — islandTrustSurgeSeverityMult() composes into how deep that penalty
   // cuts: Favored softens a storm, Restless/Wrathful deepen it. Floored so it can never invert or
   // hit zero even at Wrathful's harshest multiplier.
-  const stormPenalty = (1 - STORM_SPEED_MULT) * islandTrustSurgeSeverityMult();
+  // Storm tiers (v0.37) — reads the active storm's own tier speedMult instead of one flat
+  // constant; STORM_SPEED_MULT survives only as the pre-v0.37 fallback for the split-second edge
+  // case where surge.active is 'storm' but stormTier hasn't been assigned yet (never actually
+  // happens in practice — startSurge() always sets both together — but kept for safety).
+  const baseStormMult = (surge.active === 'storm' && surge.stormTier) ? STORM_TIERS[surge.stormTier].speedMult : STORM_SPEED_MULT;
+  const stormPenalty = (1 - baseStormMult) * islandTrustSurgeSeverityMult();
   const stormSpeedMult = surge.active === 'storm' ? Math.max(0.15, 1 - stormPenalty) : 1;
   player.x += dx * PLAYER_SPEED * stormSpeedMult * dt;
   player.y += dy * PLAYER_SPEED * stormSpeedMult * dt;
@@ -4795,7 +5055,11 @@ function updateHud() {
   if (surge.active) {
     surgeIndicatorEl.style.display = 'block';
     surgeIndicatorEl.className = surge.active;
-    surgeIndicatorEl.textContent = SURGE_LABELS[surge.active] + ' · ' + Math.max(0, Math.ceil(surge.timer / 1000)) + 's';
+    // Storm tiers (v0.37) — shows the actual tier name ("⛈ Tempest") instead of the generic
+    // "⛈ Storm" label, per Sean's choice to surface tier severity on the HUD rather than keep it
+    // hidden like islandTrust. Swarm/dry spell are unaffected — they have no tiers.
+    const label = (surge.active === 'storm' && surge.stormTier) ? ('⛈ ' + STORM_TIERS[surge.stormTier].name) : SURGE_LABELS[surge.active];
+    surgeIndicatorEl.textContent = label + ' · ' + Math.max(0, Math.ceil(surge.timer / 1000)) + 's';
   } else {
     surgeIndicatorEl.style.display = 'none';
     surgeIndicatorEl.className = '';
@@ -4845,7 +5109,10 @@ function draw() {
   if (gameMode === 'duo' && currentScreen === wren.screen) drawWren(theme);
   drawPlayer(theme);
   drawInteractPrompt(theme);
-  if (surge.active === 'storm') drawStormOverlay(islandTrustSurgeSeverityMult());
+  // Storm tiers (v0.37) — the tier's own darknessMult composes with islandTrustSurgeSeverityMult()
+  // exactly the way the intensity parameter always worked, just with a per-tier baseline instead
+  // of a flat 1.0 for every storm.
+  if (surge.active === 'storm') drawStormOverlay((surge.stormTier ? STORM_TIERS[surge.stormTier].darknessMult : 1) * islandTrustSurgeSeverityMult());
   // Island Trust (v0.28) — the visible half of the disorientation trick; see fireTrickDisorient()/
   // updatePlayer(). Drawn last, over everything, same as the storm overlay above.
   if (performance.now() < trick.disorientUntil) drawDisorientOverlay();
