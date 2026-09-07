@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.35</title>
+<title>Crash Beach — Prototype v0.36</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -212,6 +212,45 @@
     color: #eef; border-radius: 8px;
   }
   .meetingBtn:hover { background: rgba(255,255,255,0.18); border-color: #ffe066; }
+
+  /* v0.36 — motion-comic cutscenes. Unlike the other overlays, a cutscene draws its own frames
+     straight onto the live game canvas (see drawCutsceneFrame()) rather than covering it with a
+     solid modal div — these three small HTML pieces are the only DOM chrome layered on top of it:
+     a caption bar (typewriter text), a "tap to continue" hint, and a skip button. Positioning
+     mirrors #banner's percentage-based approach so it holds up across the canvas's responsive
+     width:100% scaling. */
+  #cutsceneCaption {
+    position: absolute; left: 6%; right: 6%; bottom: 9%;
+    background: rgba(5,5,10,0.72); border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 10px; padding: 14px 18px; box-sizing: border-box;
+    font-size: 15px; line-height: 1.5; text-align: center; color: #f0e6d8;
+    opacity: 0; transition: opacity 0.25s; pointer-events: none;
+  }
+  #cutsceneCaption.show { opacity: 1; }
+  #cutsceneContinueHint {
+    position: absolute; right: 4.5%; bottom: 4%;
+    font-size: 11px; color: #ffe066; opacity: 0; transition: opacity 0.3s;
+    text-shadow: 0 1px 3px #000; pointer-events: none;
+  }
+  #cutsceneContinueHint.show { opacity: 0.9; animation: cutscenePulse 1.4s ease-in-out infinite; }
+  @keyframes cutscenePulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+  #cutsceneSkipBtn {
+    position: absolute; top: 3%; right: 3%;
+    background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.3);
+    color: #eef; border-radius: 8px; padding: 6px 12px; font-size: 12px; cursor: pointer;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none; font-family: inherit;
+  }
+  #cutsceneSkipBtn.show { opacity: 0.85; pointer-events: auto; }
+  #cutsceneSkipBtn:hover { background: rgba(0,0,0,0.7); }
+  /* Unlike the solid full-screen modal panels (meetingPanel etc.), a cutscene paints its own art
+     directly on the live canvas rather than covering it — so the HUD/joystick/on-screen buttons,
+     which are separate DOM elements layered over that same canvas, need to be explicitly hidden
+     for the duration, or they'd float uselessly on top of the cinematic. playCutscene()/
+     csEndCutscene() toggle this class on #wrap. */
+  #wrap.cutsceneActive #hud, #wrap.cutsceneActive #locationTag, #wrap.cutsceneActive #surgeIndicator,
+  #wrap.cutsceneActive #banner, #wrap.cutsceneActive #instructions, #wrap.cutsceneActive #joyBase,
+  #wrap.cutsceneActive #huntBtn, #wrap.cutsceneActive #craftBtn, #wrap.cutsceneActive #saveBtn,
+  #wrap.cutsceneActive #interactBtn, #wrap.cutsceneActive #actionBtn { display: none !important; }
   .nameForm { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 360px; margin-bottom: 6px; }
   .nameForm label, .toneBlock label {
     font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; color: #9fb0b8;
@@ -294,7 +333,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.35 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. And the music now rotates through several melodic patterns per mood instead of one repeating loop.</p>
+  <p class="note">Prototype v0.36 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -519,6 +558,11 @@
       <div id="nameErrorMsg" style="display:none; color:#ff8080; font-size:12px; margin-bottom:6px;"></div>
       <button id="nameConfirmBtn" class="bigBtn">Begin</button>
     </div>
+
+    <!-- v0.36 — cutscene chrome; see drawCutsceneFrame() and the CUTSCENE ENGINE section below. -->
+    <div id="cutsceneCaption"></div>
+    <div id="cutsceneContinueHint">▸ tap to continue</div>
+    <button id="cutsceneSkipBtn">Skip ▸▸</button>
   </div>
 
 <script>
@@ -1034,7 +1078,7 @@ const playerNameInput = document.getElementById('playerNameInput');
 const wrenNameInput = document.getElementById('wrenNameInput');
 const nameConfirmBtn = document.getElementById('nameConfirmBtn');
 let paused = false;
-let activeOverlay = null; // null | 'options' | 'craft' | 'meeting' | 'merge' | 'names' | 'bonded' | 'estranged' | 'battle'
+let activeOverlay = null; // null | 'options' | 'craft' | 'meeting' | 'merge' | 'names' | 'bonded' | 'estranged' | 'battle' | 'cutscene'
 // Player and Wren's names, set once at the start of a run via the name panel below.
 // Every UI string that used to hardcode "Sean"/"Wren" now reads these instead, either
 // live (JS-generated banners/labels) or via the .dyn-campName/.dyn-wrenName spans, which
@@ -1047,7 +1091,7 @@ let wrenName = 'Wren';
 let firstTelegraphSeen = false;
 
 function openOptions() {
-  if (dead || activeOverlay === 'craft' || activeOverlay === 'meeting' || activeOverlay === 'merge' || activeOverlay === 'names' || activeOverlay === 'bonded' || activeOverlay === 'estranged' || activeOverlay === 'battle') return;
+  if (dead || activeOverlay === 'craft' || activeOverlay === 'meeting' || activeOverlay === 'merge' || activeOverlay === 'names' || activeOverlay === 'bonded' || activeOverlay === 'estranged' || activeOverlay === 'battle' || activeOverlay === 'cutscene') return;
   ensureAudio();
   activeOverlay = 'options';
   paused = true;
@@ -1063,7 +1107,7 @@ optionsBtn.onclick = openOptions;
 resumeBtn.onclick = closeOptions;
 
 function openCraftPanel() {
-  if (dead || activeOverlay === 'options' || activeOverlay === 'meeting' || activeOverlay === 'merge' || activeOverlay === 'names' || activeOverlay === 'bonded' || activeOverlay === 'estranged' || activeOverlay === 'battle') return;
+  if (dead || activeOverlay === 'options' || activeOverlay === 'meeting' || activeOverlay === 'merge' || activeOverlay === 'names' || activeOverlay === 'bonded' || activeOverlay === 'estranged' || activeOverlay === 'battle' || activeOverlay === 'cutscene') return;
   ensureAudio();
   activeOverlay = 'craft';
   paused = true;
@@ -1150,9 +1194,23 @@ function confirmNames() {
   // is applied correctly for the run that's actually about to start.
   resetGame();
   namePanel.style.display = 'none';
-  activeOverlay = null;
-  paused = false;
-  lastTime = performance.now();
+  // v0.36 — the crash-landing cutscene plays once, ever, on this browser (see
+  // hasSeenCrashIntro()/CUTSCENE_INTRO_SEEN_KEY above the CUTSCENE ENGINE section) rather than on
+  // every fresh run — Permadeath makes "start a new run" routine, and replaying an origin scene
+  // every single restart would wear thin fast. The "Continue Run" flow (loading an existing save)
+  // never reaches confirmNames() at all, so it's unaffected either way.
+  if (!hasSeenCrashIntro()) {
+    markCrashIntroSeen();
+    playCutscene('crashLanding', () => {
+      activeOverlay = null;
+      paused = false;
+      lastTime = performance.now();
+    });
+  } else {
+    activeOverlay = null;
+    paused = false;
+    lastTime = performance.now();
+  }
 }
 nameConfirmBtn.onclick = confirmNames;
 [playerNameInput, wrenNameInput].forEach(input => {
@@ -1161,10 +1219,15 @@ nameConfirmBtn.onclick = confirmNames;
 
 // The first-meeting scene isn't opened/closed like Options or Craft — it triggers itself once,
 // the first time the player gets close enough to Wren, and only a choice resolves it.
+// v0.36 — now plays the firstMeeting cutscene first (prototyped/pacing-tested as its own
+// standalone demo) and only opens the actual choice panel once that finishes, instead of jumping
+// straight to the choice panel the way this did through v0.35.
 function triggerFirstMeeting() {
-  activeOverlay = 'meeting';
-  paused = true;
-  meetingPanel.style.display = 'flex';
+  playCutscene('firstMeeting', () => {
+    activeOverlay = 'meeting';
+    paused = true;
+    meetingPanel.style.display = 'flex';
+  });
 }
 function resolveFirstMeeting(choice) {
   wren.met = true;
@@ -1291,6 +1354,492 @@ function resolveEstrangedScene() {
 }
 estrangedContinueBtn.onclick = resolveEstrangedScene;
 
+// ================= CUTSCENE ENGINE (v0.36) =================
+// Motion-comic cutscenes: short animated Canvas 2D sequences (camera pans/zooms over flat-shape
+// art, letterboxed, with typewriter captions) that play on the SAME game canvas the live map
+// already uses, rather than opening a solid modal div like every other overlay above. draw()
+// branches to drawCutsceneFrame() below whenever activeOverlay === 'cutscene'; the three small
+// DOM pieces (#cutsceneCaption/#cutsceneContinueHint/#cutsceneSkipBtn — see the CSS/HTML) are the
+// only chrome layered on top. Prototyped and pacing-tested first as a standalone demo (the
+// first-meeting scene) before being folded into the real game here — see the design doc.
+//
+// A cutscene is an ordered list of "panels". Each panel owns its own scene-space size (sceneW/
+// sceneH — arbitrary units, NOT the 900x600 canvas) and a draw(t, theme) function that paints
+// that space (t = seconds since the panel started, for idle animation like sway/rustle/bob);
+// camFrom/camTo are {cx, cy, zoom} camera keyframes in that same scene space, eased across the
+// panel's duration. theme is THEMES[currentTheme] so cutscene art automatically matches whatever
+// visual theme the player picked in Options, same as the live map already does.
+//
+// Deliberately reuses the game's OWN ambient music (currentTrackFor() keeps evaluating during any
+// paused overlay already, per loop()) instead of adding separate cutscene audio — one less audio
+// system to keep in sync, and it's already mood-appropriate background sound for every trigger
+// point these fire from (a fresh run, meeting Wren, etc).
+const cutsceneCaptionEl = document.getElementById('cutsceneCaption');
+const cutsceneContinueHintEl = document.getElementById('cutsceneContinueHint');
+const cutsceneSkipBtnEl = document.getElementById('cutsceneSkipBtn');
+const wrapEl = document.getElementById('wrap');
+
+function csLerp(a, b, t) { return a + (b - a) * t; }
+function csEaseInOutCubic(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+
+// ---- "seen it once, ever, on this browser" flag for the crash-landing intro specifically ----
+// Sean's call: unlike first-meeting/predator/area cutscenes (which are per-RUN story beats, same
+// as the existing bonded/estranged/merge milestones, and so naturally replay on a fresh game),
+// the crash intro is a permanent, browser-level "seen it" flag — Permadeath means restarting from
+// scratch is routine, and re-watching the plane-crash origin every single time would get old fast.
+// Same best-effort try/catch precedent as bestRunKey()/SAVE_KEY below.
+const CUTSCENE_INTRO_SEEN_KEY = 'crashBeachSeenIntro_v1';
+function hasSeenCrashIntro() {
+  try { return localStorage.getItem(CUTSCENE_INTRO_SEEN_KEY) === '1'; } catch (e) { return false; }
+}
+function markCrashIntroSeen() {
+  try { localStorage.setItem(CUTSCENE_INTRO_SEEN_KEY, '1'); } catch (e) { /* best-effort only */ }
+}
+
+// ---- shared flat-shape art helpers (same visual language as drawPlayer/drawWren/drawPalm etc.
+// elsewhere in this file — gradients + circles/ellipses/simple strokes, no image assets yet).
+// Prefixed cs* throughout this section specifically to avoid colliding with existing globals of
+// the same natural name (the live game already has a `palm` gatherable object and a drawPalm()). ----
+function csSkyOceanBackdrop(x, y, w, h, theme, stormy) {
+  const g = ctx.createLinearGradient(x, y, x, y + h * 0.55);
+  g.addColorStop(0, stormy ? '#1c2430' : theme.oceanTop);
+  g.addColorStop(1, stormy ? '#3a4658' : theme.oceanBottom);
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y, w, h * 0.55);
+  const sand = ctx.createLinearGradient(x, y + h * 0.55, x, y + h);
+  sand.addColorStop(0, theme.sandTop);
+  sand.addColorStop(1, theme.sandBottom);
+  ctx.fillStyle = sand;
+  ctx.fillRect(x, y + h * 0.55, w, h * 0.45);
+}
+function csJungleBackdrop(x, y, w, h, theme) {
+  const g = ctx.createLinearGradient(x, y, x, y + h);
+  g.addColorStop(0, '#16301f');
+  g.addColorStop(1, theme.leaf);
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y, w, h);
+}
+function csChoppyWater(x, y, w, h, theme, t, stormy) {
+  const g = ctx.createLinearGradient(x, y, x, y + h);
+  g.addColorStop(0, stormy ? '#232c38' : theme.oceanTop);
+  g.addColorStop(1, stormy ? '#48586c' : theme.oceanBottom);
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 3;
+  for (let row = 0; row < 6; row++) {
+    const wy = y + 40 + row * (h / 6);
+    ctx.beginPath();
+    for (let px = x; px <= x + w; px += 26) {
+      const wave = Math.sin(px / 55 + t * 2.2 + row * 1.4) * (stormy ? 14 : 6);
+      if (px === x) ctx.moveTo(px, wy + wave); else ctx.lineTo(px, wy + wave);
+    }
+    ctx.stroke();
+  }
+}
+function csPalmTree(x, y, scale, sway, theme) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.strokeStyle = '#5a4028'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(8 + sway * 6, -70, 4 + sway * 10, -150);
+  ctx.stroke();
+  ctx.fillStyle = theme.treeline;
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 4) * Math.PI - Math.PI * 0.15 + sway * 0.1;
+    ctx.save();
+    ctx.translate(4 + sway * 10, -150);
+    ctx.rotate(a);
+    ctx.beginPath();
+    ctx.ellipse(38, 0, 42, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+function csBush(x, y, scale, rustle, theme) {
+  ctx.save();
+  ctx.translate(x + rustle, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = theme.leaf;
+  ctx.beginPath(); ctx.ellipse(0, 0, 30, 20, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-20, 6, 20, 14, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(20, 6, 20, 14, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+function csDriftwood(x, y, scale) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath(); ctx.ellipse(0, 8, 46, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#7a5a3a';
+  ctx.save(); ctx.rotate(-0.15);
+  ctx.fillRect(-40, -6, 80, 12);
+  ctx.restore();
+  ctx.fillStyle = '#8a6a4a';
+  ctx.fillRect(-18, -30, 14, 26);
+  ctx.restore();
+}
+// A simple side-view standing figure — rounded torso, circular head, two-tone hair, an optional
+// raised arm (for Wren's sharpened stick). `facing` is -1 (left) or 1 (right). Not a top-down
+// blob like drawPlayer()/drawWren() use on the live map — cutscenes read as closer "shots", so a
+// bigger, simple portrait-scale figure reads better than the map sprite would blown up.
+function csFigure(x, y, scale, opts) {
+  opts = opts || {};
+  const facing = opts.facing || 1;
+  const bodyColor = opts.bodyColor || '#3a6ea5';
+  const hairColor = opts.hairColor || null;
+  const raiseStick = !!opts.raiseStick;
+  const armsUp = !!opts.armsUp;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale * facing, scale);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath(); ctx.ellipse(0, 96, 30, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2b1d0e';
+  ctx.fillRect(-14, 40, 11, 52);
+  ctx.fillRect(3, 40, 11, 52);
+  ctx.fillStyle = bodyColor;
+  ctx.beginPath();
+  ctx.moveTo(-20, 40);
+  ctx.quadraticCurveTo(-24, -14, 0, -18);
+  ctx.quadraticCurveTo(24, -14, 20, 40);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = bodyColor; ctx.lineWidth = 11; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-16, -8); ctx.lineTo(-24, 28); ctx.stroke();
+  if (raiseStick) {
+    ctx.beginPath(); ctx.moveTo(16, -8); ctx.lineTo(30, -34); ctx.stroke();
+    ctx.strokeStyle = '#8a6a4a'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(14, -46); ctx.lineTo(46, -18); ctx.stroke();
+  } else if (armsUp) {
+    ctx.beginPath(); ctx.moveTo(16, -8); ctx.lineTo(26, -36); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.moveTo(16, -8); ctx.lineTo(24, 28); ctx.stroke();
+  }
+  ctx.fillStyle = '#e8b98a';
+  ctx.beginPath(); ctx.arc(0, -30, 16, 0, Math.PI * 2); ctx.fill();
+  if (hairColor) {
+    ctx.fillStyle = hairColor;
+    ctx.beginPath(); ctx.ellipse(-3, -42, 15, 11, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(7, -36); ctx.quadraticCurveTo(22, -30, 16, -14);
+    ctx.quadraticCurveTo(8, -26, 7, -36);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+// A prone, face-down figure (washed up on the sand) — panel 3 of the crash-landing intro.
+function csFigureProne(x, y, scale, bodyColor) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath(); ctx.ellipse(0, 14, 70, 14, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = bodyColor;
+  ctx.beginPath(); ctx.ellipse(0, 0, 46, 16, -0.06, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = bodyColor; ctx.lineWidth = 10; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(30, -4); ctx.lineTo(62, -18); ctx.stroke(); // outstretched arm, reaching
+  ctx.fillStyle = '#e8b98a';
+  ctx.beginPath(); ctx.arc(-46, 4, 14, 0, Math.PI * 2); ctx.fill(); // head, turned to the side
+  ctx.restore();
+}
+// A small plane silhouette, trailing a few fading smoke puffs from one engine — panel 1 of the
+// crash-landing intro. `dx` drifts it sideways over the panel's duration for a sense of motion.
+function csPlaneSilhouette(x, y, scale, tilt, dx) {
+  ctx.save();
+  ctx.translate(x + dx, y);
+  ctx.rotate(tilt);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = '#1a1f26';
+  ctx.beginPath(); ctx.ellipse(0, 0, 60, 9, 0, 0, Math.PI * 2); ctx.fill(); // fuselage
+  ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(-40, 26); ctx.lineTo(-24, 4); ctx.closePath(); ctx.fill(); // wing
+  ctx.beginPath(); ctx.moveTo(46, 0); ctx.lineTo(64, -14); ctx.lineTo(50, 2); ctx.closePath(); ctx.fill(); // tail
+  ctx.restore();
+  // trailing smoke — a handful of fading circles behind the fuselage, drifting slightly
+  for (let i = 0; i < 5; i++) {
+    const age = i / 5;
+    const sx = x + dx - 60 * scale - i * 22 * scale;
+    const sy = y + 6 * scale + i * 9 * scale;
+    ctx.fillStyle = `rgba(120,120,125,${(0.32 * (1 - age)).toFixed(3)})`;
+    ctx.beginPath(); ctx.arc(sx, sy, (10 + i * 4) * scale, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// ---- the cutscene library itself ----
+const CUTSCENES = {
+  crashLanding: [
+    {
+      duration: 5200,
+      sceneW: 1600, sceneH: 900,
+      camFrom: { cx: 500, cy: 380, zoom: 0.55 },
+      camTo: { cx: 950, cy: 420, zoom: 0.64 },
+      caption: 'The engine went quiet somewhere over open water. After that there wasn’t much to do but hold on.',
+      draw(t, theme) {
+        csSkyOceanBackdrop(0, 0, 1600, 900, theme, true);
+        csPlaneSilhouette(760, 380, 1.15, 0.22 + Math.sin(t * 0.6) * 0.03, -t * 26);
+      },
+    },
+    {
+      duration: 4600,
+      sceneW: 1300, sceneH: 800,
+      camFrom: { cx: 560, cy: 430, zoom: 0.75 },
+      camTo: { cx: 690, cy: 410, zoom: 0.98 },
+      caption: 'No mayday finished. No count of how long you were in the water — just cold, and a current that wouldn’t let go.',
+      draw(t, theme) {
+        csChoppyWater(0, 0, 1300, 800, theme, t, true);
+        csDriftwood(420, 360 + Math.sin(t * 1.6) * 6, 0.9);
+        csDriftwood(880, 300 + Math.sin(t * 1.6 + 1) * 6, 0.6);
+        // a barely-afloat figure — just head/shoulders above the chop, one arm up
+        csFigure(680, 420 + Math.sin(t * 1.8) * 7, 0.62, { facing: 1, bodyColor: '#3a6ea5', armsUp: true });
+      },
+    },
+    {
+      duration: 3800,
+      sceneW: 900, sceneH: 650,
+      camFrom: { cx: 450, cy: 380, zoom: 0.9 },
+      camTo: { cx: 450, cy: 330, zoom: 1.28 },
+      caption: 'Sand. Real, solid sand. Wherever the water put you down, it isn’t the ocean anymore.',
+      draw(t, theme) {
+        const g = ctx.createLinearGradient(0, 0, 0, 650);
+        g.addColorStop(0, theme.sandTop); g.addColorStop(1, theme.sandBottom);
+        ctx.fillStyle = g; ctx.fillRect(0, 0, 900, 650);
+        // receding foam line along the top, animated
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 6;
+        ctx.beginPath();
+        for (let px = 0; px <= 900; px += 30) {
+          const fy = 40 + Math.sin(px / 70 + t * 1.5) * 8;
+          if (px === 0) ctx.moveTo(px, fy); else ctx.lineTo(px, fy);
+        }
+        ctx.stroke();
+        csFigureProne(450, 340, 1.15, '#3a6ea5');
+      },
+    },
+    {
+      duration: 5000,
+      sceneW: 1500, sceneH: 900,
+      camFrom: { cx: 560, cy: 520, zoom: 0.6 },
+      camTo: { cx: 880, cy: 470, zoom: 0.72 },
+      caption: 'Just you, the wreckage, and an island that doesn’t have a name yet. Whatever happens next, it starts here.',
+      draw(t, theme) {
+        csSkyOceanBackdrop(0, 0, 1500, 900, theme, false);
+        csDriftwood(300, 640, 1.3);
+        csDriftwood(230, 600, 0.8);
+        csDriftwood(1080, 660, 1.0);
+        csPalmTree(1250, 760, 1.1, Math.sin(t * 0.5) * 0.15, theme);
+        csPalmTree(1370, 720, 0.85, Math.sin(t * 0.5 + 1) * 0.15, theme);
+        csFigure(880, 610, 1.0, { facing: 1, bodyColor: theme.player });
+      },
+    },
+  ],
+  // First-meeting Wren — prototyped and pacing-tested as its own standalone demo before being
+  // wired in here; see triggerFirstMeeting() below, which now plays this before opening the
+  // existing meetingPanel choice screen instead of opening that panel directly.
+  firstMeeting: [
+    {
+      duration: 5200,
+      sceneW: 1500, sceneH: 900,
+      camFrom: { cx: 430, cy: 520, zoom: 0.62 },
+      camTo: { cx: 900, cy: 480, zoom: 0.72 },
+      caption: 'Three days since the wreck. Just you, the sand, and a treeline that never seems to end.',
+      draw(t, theme) {
+        csSkyOceanBackdrop(0, 0, 1500, 900, theme, false);
+        csDriftwood(300, 640, 1.3);
+        csDriftwood(230, 600, 0.8);
+        csPalmTree(1250, 760, 1.1, Math.sin(t * 0.5) * 0.15, theme);
+        csPalmTree(1370, 720, 0.85, Math.sin(t * 0.5 + 1) * 0.15, theme);
+        csFigure(900, 620, 1.0, { facing: 1, bodyColor: theme.player });
+      },
+    },
+    {
+      duration: 4600,
+      sceneW: 1300, sceneH: 900,
+      camFrom: { cx: 500, cy: 480, zoom: 0.68 },
+      camTo: { cx: 640, cy: 460, zoom: 0.85 },
+      caption: 'Then — the leaves move. You’re not alone out here.',
+      draw(t, theme) {
+        csJungleBackdrop(0, 0, 1300, 900, theme);
+        csPalmTree(180, 780, 1.2, Math.sin(t * 0.4) * 0.12, theme);
+        csPalmTree(1080, 800, 1.0, Math.sin(t * 0.4 + 1.3) * 0.12, theme);
+        const rustle = Math.sin(t * 14) * 6;
+        csBush(650, 620, 2.0, rustle, theme);
+        csFigure(340, 660, 1.0, { facing: 1, bodyColor: theme.player });
+      },
+    },
+    {
+      duration: 3400,
+      sceneW: 900, sceneH: 700,
+      camFrom: { cx: 450, cy: 380, zoom: 0.95 },
+      camTo: { cx: 450, cy: 340, zoom: 1.35 },
+      caption: 'She spins fast, stick raised, breath held. She wasn’t expecting anyone either.',
+      draw(t, theme) {
+        csJungleBackdrop(0, 0, 900, 700, theme);
+        const jolt = t < 0.25 ? Math.sin(t * 90) * (0.25 - t) * 40 : 0;
+        csFigure(450 + jolt, 460, 1.35, { facing: -1, bodyColor: '#a8552f', hairColor: '#a83f2b', raiseStick: true });
+      },
+    },
+    {
+      duration: 4400,
+      sceneW: 1200, sceneH: 800,
+      camFrom: { cx: 600, cy: 420, zoom: 0.95 },
+      camTo: { cx: 600, cy: 400, zoom: 0.8 },
+      caption: 'Two strangers, frozen mid-breath. However you handle the next few seconds is going to matter.',
+      draw(t, theme) {
+        csJungleBackdrop(0, 0, 1200, 800, theme);
+        csPalmTree(120, 700, 1.0, Math.sin(t * 0.4) * 0.1, theme);
+        csPalmTree(1080, 700, 1.0, Math.sin(t * 0.4 + 2) * 0.1, theme);
+        const breathe = Math.sin(t * 2.2) * 2;
+        csFigure(430 + breathe * 0.2, 520, 1.15, { facing: 1, bodyColor: theme.player });
+        csFigure(780 - breathe * 0.2, 520, 1.15, { facing: -1, bodyColor: '#a8552f', hairColor: '#a83f2b', raiseStick: true });
+      },
+    },
+  ],
+};
+
+// ---- playback state + control flow ----
+let cutsceneState = null; // { list, index, panelStart, typedChars, captionDone, fading, fadeAlpha, fadeDir, pendingAdvance, onComplete }
+
+function playCutscene(id, onComplete) {
+  const list = CUTSCENES[id];
+  if (!list || !list.length) { if (onComplete) onComplete(); return; } // fail safe: never soft-lock the game over a missing cutscene id
+  activeOverlay = 'cutscene';
+  paused = true;
+  cutsceneSkipBtnEl.classList.add('show');
+  wrapEl.classList.add('cutsceneActive'); // hides HUD/joystick/on-screen buttons for the duration
+  cutsceneState = { list, index: 0, onComplete, fading: false, fadeAlpha: 0, fadeDir: 0, pendingAdvance: null };
+  csEnterPanel(0);
+}
+
+function csEnterPanel(i) {
+  const cs = cutsceneState;
+  cs.index = i;
+  cs.panelStart = performance.now();
+  cs.typedChars = 0;
+  cs.captionDone = false;
+  cutsceneCaptionEl.textContent = '';
+  cutsceneCaptionEl.classList.remove('show');
+  cutsceneContinueHintEl.classList.remove('show');
+}
+
+function csGoToNextPanel() {
+  const cs = cutsceneState;
+  if (!cs) return;
+  if (cs.index >= cs.list.length - 1) { csEndCutscene(); return; }
+  cs.fading = true; cs.fadeDir = 1; cs.fadeAlpha = 0;
+  cs.pendingAdvance = () => csEnterPanel(cs.index + 1);
+}
+
+function csEndCutscene() {
+  const cs = cutsceneState;
+  cutsceneSkipBtnEl.classList.remove('show');
+  cutsceneCaptionEl.classList.remove('show');
+  cutsceneContinueHintEl.classList.remove('show');
+  wrapEl.classList.remove('cutsceneActive'); // HUD/joystick/on-screen buttons come back
+  cutsceneState = null;
+  const onComplete = cs && cs.onComplete;
+  if (onComplete) onComplete();
+  else { activeOverlay = null; paused = false; lastTime = performance.now(); }
+}
+
+function csSkip() {
+  const cs = cutsceneState;
+  if (!cs) return;
+  cs.fading = false; cs.fadeAlpha = 0;
+  csEnterPanel(cs.list.length - 1);
+  // Land on the last panel's final camera position with its caption already fully typed, but
+  // leave a short hold before the auto-advance in drawCutsceneFrame() would otherwise fire on the
+  // very next frame — long enough to actually see the held final shot before it hands off.
+  const p = cs.list[cs.index];
+  cs.panelStart = performance.now() - Math.max(0, p.duration - 1500);
+  cs.typedChars = p.caption.length;
+  cs.captionDone = true;
+  cutsceneCaptionEl.textContent = p.caption;
+  cutsceneCaptionEl.classList.add('show');
+  cutsceneContinueHintEl.classList.add('show');
+}
+
+// Click/tap advance: first press finishes the typewriter early; a second press (once fully
+// typed) advances to the next panel. Bound on the canvas itself so it only ever fires when a
+// cutscene is actually the active overlay (the live map has no click handler otherwise).
+canvas.addEventListener('click', () => {
+  const cs = cutsceneState;
+  if (activeOverlay !== 'cutscene' || !cs || cs.fading) return;
+  const p = cs.list[cs.index];
+  if (!cs.captionDone) {
+    cs.typedChars = p.caption.length;
+    cutsceneCaptionEl.textContent = p.caption;
+    cs.captionDone = true;
+    cutsceneContinueHintEl.classList.add('show');
+    cs.panelStart = performance.now() - p.duration;
+  } else {
+    csGoToNextPanel();
+  }
+});
+cutsceneSkipBtnEl.onclick = csSkip;
+
+// Called from draw() (see below) once per frame whenever activeOverlay === 'cutscene'. Owns both
+// the "update" half (camera easing, typewriter progress, auto-advance, fade transitions) and the
+// "render" half (camera-transformed panel art + letterbox bars), same shape as the standalone
+// demo's loop() but folded into the game's existing per-frame draw() instead of its own rAF.
+function drawCutsceneFrame() {
+  const cs = cutsceneState;
+  if (!cs) return;
+  const theme = THEMES[currentTheme];
+  const p = cs.list[cs.index];
+  const now = performance.now();
+  const elapsed = now - cs.panelStart;
+  const rawT = Math.min(1, elapsed / p.duration);
+  const et = csEaseInOutCubic(rawT);
+  const cx = csLerp(p.camFrom.cx, p.camTo.cx, et);
+  const cy = csLerp(p.camFrom.cy, p.camTo.cy, et);
+  const zoom = csLerp(p.camFrom.zoom, p.camTo.zoom, et);
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-cx, -cy);
+  p.draw(elapsed / 1000, theme);
+  ctx.restore();
+
+  // letterbox bars, full height throughout playback (no slide-in — activeOverlay flips straight
+  // from whatever came before, so there's no "idle frame" moment to animate out of like the demo had)
+  const barH = 46;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, barH);
+  ctx.fillRect(0, H - barH, W, barH);
+
+  // caption typewriter
+  const charsShould = Math.floor((elapsed / 1000) * 42);
+  if (!cs.captionDone && charsShould > cs.typedChars) {
+    cs.typedChars = Math.min(p.caption.length, charsShould);
+    cutsceneCaptionEl.textContent = p.caption.slice(0, cs.typedChars);
+    cutsceneCaptionEl.classList.add('show');
+    if (cs.typedChars >= p.caption.length) {
+      cs.captionDone = true;
+      cutsceneContinueHintEl.classList.add('show');
+    }
+  }
+
+  // auto-advance once fully typed AND the panel's full duration has elapsed
+  if (cs.captionDone && rawT >= 1 && !cs.fading) csGoToNextPanel();
+
+  // fade transition overlay
+  if (cs.fading) {
+    cs.fadeAlpha += cs.fadeDir * 0.06;
+    if (cs.fadeAlpha >= 1) {
+      cs.fadeAlpha = 1; cs.fadeDir = -1;
+      if (cs.pendingAdvance) { cs.pendingAdvance(); cs.pendingAdvance = null; }
+    } else if (cs.fadeAlpha <= 0 && cs.fadeDir === -1) {
+      cs.fadeAlpha = 0; cs.fading = false;
+    }
+    ctx.fillStyle = `rgba(0,0,0,${cs.fadeAlpha})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (activeOverlay === 'craft') closeCraftPanel();
@@ -1301,7 +1850,11 @@ window.addEventListener('keydown', e => {
     else if (activeOverlay === 'bonded') resolveBondedScene();
     else if (activeOverlay === 'estranged') resolveEstrangedScene();
     else if (activeOverlay === 'battle') { /* no-op — a fight is decided from its own menu, not Escape */ }
+    else if (activeOverlay === 'cutscene') csSkip();
     else openOptions();
+  } else if ((e.key === ' ' || e.key === 'Enter') && activeOverlay === 'cutscene') {
+    e.preventDefault();
+    canvas.click(); // same click-to-advance handler the canvas already listens for
   }
 });
 document.getElementById('musicMuteChk').onchange = e => { settings.musicMuted = e.target.checked; };
@@ -4267,6 +4820,9 @@ function updateHud() {
 }
 
 function draw() {
+  // v0.36 — a cutscene owns the whole canvas while it plays (see drawCutsceneFrame()); the live
+  // map underneath is simply frozen (paused === true) rather than drawn at all during that time.
+  if (activeOverlay === 'cutscene') { drawCutsceneFrame(); return; }
   const theme = THEMES[currentTheme];
   if (currentScreen === 'camp') drawCampBackground(theme);
   else if (currentScreen === 'stream') drawStreamBackground(theme);
