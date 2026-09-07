@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.42</title>
+<title>Crash Beach — Prototype v0.43</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -284,9 +284,17 @@
   .craftBtnSmall:hover:not(:disabled) { background: #3aa76d; }
   .craftBtnSmall:disabled { background: #555; cursor: not-allowed; opacity: 0.6; }
 
-  /* --- touch controls --- */
+  /* --- touch controls ---
+     v0.43 rework: every offset below is a percentage of #wrap (left/bottom
+     unchanged as noted), because #wrap's rendered size is always exactly the
+     canvas's rendered size (canvas is #wrap's only in-flow child, sized by
+     width:100%/height:auto against a fixed 900x600 = 1.5:1 intrinsic ratio).
+     That makes every button a fixed fraction of the ACTUAL play area at any
+     phone size, instead of the pre-v0.43 fixed-pixel offsets that were only
+     correct at the 900x600 reference size and pushed the top row of buttons
+     above the canvas entirely on a typical phone-height canvas. */
   #joyBase {
-    position: absolute; left: 26px; bottom: 26px;
+    position: absolute; left: 26px; bottom: 4%;
     width: 22%; max-width: 110px; aspect-ratio: 1/1;
     border-radius: 50%;
     background: rgba(255,255,255,0.14);
@@ -301,33 +309,32 @@
     pointer-events: none;
   }
   #actionBtn, #interactBtn, #craftBtn, #huntBtn, #saveBtn {
-    position: absolute; right: 26px;
-    width: 18%; max-width: 82px; aspect-ratio: 1/1;
+    position: absolute; right: 3%;
+    width: 14%; max-width: 80px; aspect-ratio: 1/1;
     border-radius: 50%;
     color: #fff; font-weight: bold; font-size: 10px;
     display: flex; align-items: center; justify-content: center; text-align: center;
     touch-action: none;
   }
-  #actionBtn { bottom: 26px; background: rgba(255,200,60,0.35); border: 2px solid rgba(255,200,60,0.7); }
+  #actionBtn { bottom: 4%; background: rgba(255,200,60,0.35); border: 2px solid rgba(255,200,60,0.7); }
   #actionBtn.pressed { background: rgba(255,200,60,0.7); }
-  #interactBtn { bottom: 116px; background: rgba(120,220,150,0.3); border: 2px solid rgba(120,220,150,0.55); opacity: 0.4; transition: opacity 0.15s; }
+  #interactBtn { bottom: 30%; background: rgba(120,220,150,0.3); border: 2px solid rgba(120,220,150,0.55); opacity: 0.4; transition: opacity 0.15s; }
   #interactBtn.active { opacity: 1; }
   #interactBtn.pressed { background: rgba(120,220,150,0.7); }
-  #craftBtn { bottom: 206px; background: rgba(180,150,255,0.3); border: 2px solid rgba(180,150,255,0.55); opacity: 0.4; transition: opacity 0.15s; }
+  #craftBtn { bottom: 56%; background: rgba(180,150,255,0.3); border: 2px solid rgba(180,150,255,0.55); opacity: 0.4; transition: opacity 0.15s; }
   #craftBtn.active { opacity: 1; }
   #craftBtn.pressed { background: rgba(180,150,255,0.7); }
-  /* v0.26 — Go Hunting: a fourth round HUD button. NOT stacked any higher in the existing
-     right-edge column — the inventory list (#rightHud) already reaches down close to craftBtn's
-     height (bottom:206px, the tallest safe point in that column), and going higher collides with
-     it. Placed instead as a second column, level with craftBtn, well clear of both the inventory
-     box (which hugs the right edge) and the joystick (which hugs the left edge). */
-  #huntBtn { bottom: 206px; right: 120px; background: rgba(230,110,80,0.32); border: 2px solid rgba(230,110,80,0.65); opacity: 0.4; transition: opacity 0.15s; }
+  /* v0.26 — Go Hunting: a fourth round HUD button, placed as a second column level with
+     craftBtn (v0.43: right offsets are now percentages too — see comment above the block —
+     so this column stays clear of the joystick at every screen size, not just the reference
+     size these pixel values were originally tuned against). */
+  #huntBtn { bottom: 56%; right: 20%; background: rgba(230,110,80,0.32); border: 2px solid rgba(230,110,80,0.65); opacity: 0.4; transition: opacity 0.15s; }
   #huntBtn.active { opacity: 1; }
   #huntBtn.pressed { background: rgba(230,110,80,0.7); }
   /* v0.34 — Save (Continue mode only): a third button column, clear of both the inventory
      box hugging the right edge and the huntBtn column beside it. Dimmed exactly like
      craftBtn/huntBtn when not currently usable (Permadeath mode, or away from camp). */
-  #saveBtn { bottom: 206px; right: 214px; background: rgba(120,200,255,0.32); border: 2px solid rgba(120,200,255,0.65); opacity: 0.4; transition: opacity 0.15s; }
+  #saveBtn { bottom: 56%; right: 37%; background: rgba(120,200,255,0.32); border: 2px solid rgba(120,200,255,0.65); opacity: 0.4; transition: opacity 0.15s; }
   #saveBtn.active { opacity: 1; }
   #saveBtn.pressed { background: rgba(120,200,255,0.7); }
 
@@ -335,6 +342,7 @@
   @media (max-width: 480px) {
     p.note { display: none; }
     h2 { font-size: 15px; }
+    #inventory { font-size: 9.5px; padding: 4px 7px; line-height: 1.35; }
   }
 </style>
 </head>
@@ -343,7 +351,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.42 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required — and the first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too, and so does the first time you reach every other part of the island.</p>
+  <p class="note">Prototype v0.43 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required — and the first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too, and so does the first time you reach every other part of the island.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -374,23 +382,23 @@
         <div id="inventory">
           <div>🛠️ Craft Lv: <span id="invCraftLevel">1</span></div>
           <div>🔱 Spear: <span id="invSpear">3/3</span></div>
-          <div>🪵 Wood: <span id="invWood">0</span></div>
-          <div>🥥 Coconut: <span id="invCoconut">0</span></div>
-          <div>🐚 Shell: <span id="invShell">0</span></div>
-          <div>🎋 Reed: <span id="invReed">0</span></div>
-          <div>🐟 Fish: <span id="invFish">0</span></div>
-          <div>🪢 Rope: <span id="invRope">0</span></div>
-          <div>🥩 Meat: <span id="invMeat">0</span></div>
-          <div>🍖 Cooked Meat: <span id="invCookedMeat">0</span></div>
-          <div>🦴 Bone: <span id="invBone">0</span></div>
-          <div>🧵 Pelt: <span id="invPelt">0</span></div>
-          <div>🫐 Berries: <span id="invBerries">0</span></div>
-          <div>🪨 Stone: <span id="invStone">0</span></div>
-          <div>🌿 Herb: <span id="invHerb">0</span></div>
-          <div>🔩 Scrap: <span id="invScrap">0</span></div>
-          <div>📦 Salvage: <span id="invSalvage">0</span></div>
-          <div>💊 Tablets: <span id="invTablets">0</span></div>
-          <div>🪵 Ironwood: <span id="invIronwood">0</span></div>
+          <div id="rowWood">🪵 Wood: <span id="invWood">0</span></div>
+          <div id="rowCoconut">🥥 Coconut: <span id="invCoconut">0</span></div>
+          <div id="rowShell">🐚 Shell: <span id="invShell">0</span></div>
+          <div id="rowReed">🎋 Reed: <span id="invReed">0</span></div>
+          <div id="rowFish">🐟 Fish: <span id="invFish">0</span></div>
+          <div id="rowRope">🪢 Rope: <span id="invRope">0</span></div>
+          <div id="rowMeat">🥩 Meat: <span id="invMeat">0</span></div>
+          <div id="rowCookedMeat">🍖 Cooked Meat: <span id="invCookedMeat">0</span></div>
+          <div id="rowBone">🦴 Bone: <span id="invBone">0</span></div>
+          <div id="rowPelt">🧵 Pelt: <span id="invPelt">0</span></div>
+          <div id="rowBerries">🫐 Berries: <span id="invBerries">0</span></div>
+          <div id="rowStone">🪨 Stone: <span id="invStone">0</span></div>
+          <div id="rowHerb">🌿 Herb: <span id="invHerb">0</span></div>
+          <div id="rowScrap">🔩 Scrap: <span id="invScrap">0</span></div>
+          <div id="rowSalvage">📦 Salvage: <span id="invSalvage">0</span></div>
+          <div id="rowTablets">💊 Tablets: <span id="invTablets">0</span></div>
+          <div id="rowIronwood">🪵 Ironwood: <span id="invIronwood">0</span></div>
           <div id="canteenRow" style="display:none">🥤 Canteen: <span id="invCanteen">0%</span></div>
           <div id="raftRow" style="display:none">🛶 Raft: Built</div>
         </div>
@@ -2283,18 +2291,9 @@ function csEndCutscene() {
 function csSkip() {
   const cs = cutsceneState;
   if (!cs) return;
-  cs.fading = false; cs.fadeAlpha = 0;
-  csEnterPanel(cs.list.length - 1);
-  // Land on the last panel's final camera position with its caption already fully typed, but
-  // leave a short hold before the auto-advance in drawCutsceneFrame() would otherwise fire on the
-  // very next frame — long enough to actually see the held final shot before it hands off.
-  const p = cs.list[cs.index];
-  cs.panelStart = performance.now() - Math.max(0, p.duration - 1500);
-  cs.typedChars = p.caption.length;
-  cs.captionDone = true;
-  cutsceneCaptionEl.textContent = p.caption;
-  cutsceneCaptionEl.classList.add('show');
-  cutsceneContinueHintEl.classList.add('show');
+  // v0.43: Skip now ends the cutscene immediately instead of jumping to the last panel and
+  // waiting for a further tap — see comment above.
+  csEndCutscene();
 }
 
 // Click/tap advance: first press finishes the typewriter early; a second press (once fully
@@ -2360,8 +2359,10 @@ function drawCutsceneFrame() {
     }
   }
 
-  // auto-advance once fully typed AND the panel's full duration has elapsed
-  if (cs.captionDone && rawT >= 1 && !cs.fading) csGoToNextPanel();
+  // v0.43 — no automatic advance: panels used to auto-advance once fully typed AND the
+  // panel's scripted camera duration elapsed, which raced a slower reader's tap and could
+  // move on before they'd finished reading. Panels now hold indefinitely; only the click
+  // handler below (or Skip) moves a cutscene forward.
 
   // fade transition overlay
   if (cs.fading) {
@@ -5463,6 +5464,20 @@ function updateHud() {
   invSalvageEl.textContent = inventory.salvage;
   invTabletsEl.textContent = inventory.tablets;
   invIronwoodEl.textContent = inventory.ironwood;
+  // v0.43 — hide any resource row at 0 so the always-on inventory list (fixed-px font, doesn't
+  // scale with the canvas) doesn't eat so much of a short mobile canvas's height. Craft Lv and
+  // Spear are deliberately excluded — durability info you always want on screen.
+  const invRowVisibility = {
+    rowWood: inventory.wood, rowCoconut: inventory.coconut, rowShell: inventory.shell,
+    rowReed: inventory.reed, rowFish: inventory.fish, rowRope: inventory.rope,
+    rowMeat: inventory.meat, rowCookedMeat: inventory.cookedMeat, rowBone: inventory.bone,
+    rowPelt: inventory.pelt, rowBerries: inventory.berries, rowStone: inventory.stone,
+    rowHerb: inventory.herb, rowScrap: inventory.scrap, rowSalvage: inventory.salvage,
+    rowTablets: inventory.tablets, rowIronwood: inventory.ironwood,
+  };
+  for (const [rowId, amount] of Object.entries(invRowVisibility)) {
+    document.getElementById(rowId).style.display = amount > 0 ? '' : 'none';
+  }
   invCraftLevelEl.textContent = player.craftingLevel + (player.craftingLevel >= MAX_CRAFTING_LEVEL ? ' (max)' : '');
   // v0.33 — leveling HUD: always visible (unlike the Wren trust row below), since it applies in
   // both Solo and Duo.
