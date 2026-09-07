@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.41</title>
+<title>Crash Beach — Prototype v0.42</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -129,6 +129,16 @@
      overflow equally above AND below the visible area, and the portion above is permanently stuck
      out of view since scrollTop can't go negative to reach it. Options' how-to text and Craft's
      recipe list (see #craftPanel below) both can overflow, so both get flex-start instead. */
+  #namePanel {
+    /* v0.42 fix: namePanel was left out of the v0.31 fix below — its own content (title, the
+       Continue Run block, two name inputs, and four Mode/Difficulty/On Death/Tone pickers) is tall
+       enough to overflow a short mobile viewport, and the shared justify-content:center rule above
+       pushes that overflow half above the visible box with no way to scroll up into it (scrollTop
+       can't go negative). Unlike Options/Craft below, namePanel's own children are already
+       horizontally centered by width/max-width + align-items:center, so only the vertical
+       centering needs to change here — text-align stays as-is. */
+    justify-content: flex-start;
+  }
   #optionsPanel { text-align: left; overflow-y: auto; justify-content: flex-start; }
   #optionsPanel h3 { margin: 14px 0 6px; color: #ffe066; font-size: 14px; }
   #optionsPanel h3:first-child { margin-top: 0; }
@@ -333,7 +343,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.41 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required — and the first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too, and so does the first time you reach every other part of the island.</p>
+  <p class="note">Prototype v0.42 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required — and the first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too, and so does the first time you reach every other part of the island.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
