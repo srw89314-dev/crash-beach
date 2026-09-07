@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.38</title>
+<title>Crash Beach — Prototype v0.39</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -333,7 +333,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.38 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required — and the first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too.</p>
+  <p class="note">Prototype v0.39 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required — and the first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too, and so does the first time you reach every other part of the island.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -2135,6 +2135,94 @@ const CUTSCENES = {
       },
     },
   ],
+  // v0.39 — area first-visit cutscenes (roadmap task 23), the last piece of the cutscene arc.
+  // Sean's original decision was every one of the map's 9 screens gets a first-visit cutscene —
+  // 2 of those 9 are already built and already do exactly that job (Beach's arrival IS the
+  // crash-landing intro's final beat, and Wren's Camp's arrival IS the first-meeting cinematic),
+  // so a separate, near-identical "you arrive somewhere new" cutscene for either would just repeat
+  // a beat the player already saw seconds earlier — a disclosed simplification, not a skipped one.
+  // These 7 cover the rest. Deliberately simpler than the story/danger cutscenes elsewhere in this
+  // object (1 held panel, not 2) — arriving at a new low-stakes area doesn't carry the same weight
+  // as a predator encounter or a storm, so the "full vs quick" split those get doesn't apply here;
+  // every screen's own real `draw*Background()` function is reused directly as the cutscene's art
+  // (rather than a new bespoke backdrop) so the "first sight" of a place is literally that place.
+  areaCamp: [
+    {
+      duration: 3200, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 300, zoom: 1.0 }, camTo: { cx: 450, cy: 300, zoom: 1.08 },
+      caption: 'A gap in the treeline opens onto a clearing — driftwood, a lean-to, somewhere to actually rest.',
+      draw(t, theme) {
+        drawCampBackground(theme);
+        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+      },
+    },
+  ],
+  areaStream: [
+    {
+      duration: 3200, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 300, zoom: 1.0 }, camTo: { cx: 450, cy: 300, zoom: 1.08 },
+      caption: 'The trees thin out around a running stream — real fresh water, if nothing else out here.',
+      draw(t, theme) {
+        drawStreamBackground(theme);
+        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+      },
+    },
+  ],
+  areaRidge: [
+    {
+      duration: 3400, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 320, zoom: 1.0 }, camTo: { cx: 450, cy: 310, zoom: 1.1 },
+      caption: 'The path climbs clear of the treeline. From up here, you can finally see how much ocean there is.',
+      draw(t, theme) {
+        drawRidgeBackground(theme);
+        csFigure(450, 480, 1.05, { facing: 1, bodyColor: theme.player });
+      },
+    },
+  ],
+  areaJungle: [
+    {
+      duration: 3400, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 300, zoom: 1.0 }, camTo: { cx: 450, cy: 300, zoom: 1.1 },
+      caption: 'The canopy closes in overhead, thick and humid. Whatever else is in here, it has the advantage.',
+      draw(t, theme) {
+        drawJungleBackground(theme);
+        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+      },
+    },
+  ],
+  areaShipwreck: [
+    {
+      duration: 3400, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 300, zoom: 1.0 }, camTo: { cx: 450, cy: 300, zoom: 1.1 },
+      caption: 'You wade out past the shallows to what’s left of a wreck, half-buried in the sand.',
+      draw(t, theme) {
+        drawShipwreckBackground(theme);
+        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+      },
+    },
+  ],
+  areaLowtide: [
+    {
+      duration: 3400, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 300, zoom: 1.0 }, camTo: { cx: 450, cy: 300, zoom: 1.1 },
+      caption: 'More wreckage, further out — only reachable, and only some of it, when the tide pulls back.',
+      draw(t, theme) {
+        drawLowtideBackground(theme);
+        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+      },
+    },
+  ],
+  areaSecondisland: [
+    {
+      duration: 3600, sceneW: 900, sceneH: 600,
+      camFrom: { cx: 450, cy: 300, zoom: 1.0 }, camTo: { cx: 450, cy: 300, zoom: 1.1 },
+      caption: 'The raft holds. A second island rises out of the water ahead of you — nobody’s been here yet.',
+      draw(t, theme) {
+        drawSecondIslandBackground(theme);
+        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+      },
+    },
+  ],
 };
 
 // ---- playback state + control flow ----
@@ -2822,7 +2910,7 @@ function renderCraftPanel() {
   }
 }
 
-let player, predator, wren, trust, water, palm, gatherables, fishSpot, inventory, elapsed, encounterMsgTimer, dead, decorations, stats, currentScreen, screenData, shelter, tide, tideTimer, surge, stormTierSeen, predatorFirstSeen;
+let player, predator, wren, trust, water, palm, gatherables, fishSpot, inventory, elapsed, encounterMsgTimer, dead, decorations, stats, currentScreen, screenData, shelter, tide, tideTimer, surge, stormTierSeen, predatorFirstSeen, areaFirstSeen;
 // v0.33 — the last in-game day player leveling awarded day-survival XP for (see awardPlayerXp()'s
 // caller in updateSurvivalStats()). currentDay() deliberately keeps no state of its own (see its
 // own comment above), so this is the one place that remembers "have we already paid out for the
@@ -3068,6 +3156,20 @@ function goToScreen(targetId, spawn, msg) {
       wren.x = player.x; wren.y = player.y;
     }
   }
+
+  // v0.39 — area first-visit cutscenes (roadmap task 23). Only the 7 screens in areaFirstSeen
+  // have one at all (Beach and Wren's Camp are deliberately excluded — see the reset comment in
+  // resetGame() and the CUTSCENES entries above for why). The player has already fully arrived
+  // (currentScreen/position/etc. are all set above) before this fires, but that's harmless: a
+  // cutscene owns the whole canvas the instant activeOverlay flips (see draw()'s early return),
+  // so the live map underneath is never actually visible even for a frame.
+  if (areaFirstSeen.hasOwnProperty(targetId) && !areaFirstSeen[targetId]) {
+    areaFirstSeen[targetId] = true;
+    // no onComplete passed — unlike the storm/predator cutscenes, there's no real gameplay
+    // action to defer here (the screen transition above already fully happened), so this
+    // relies on csEndCutscene()'s own no-onComplete fallback to clear activeOverlay/paused.
+    playCutscene('area' + targetId[0].toUpperCase() + targetId.slice(1));
+  }
 }
 
 function resetGame() {
@@ -3141,6 +3243,13 @@ function resetGame() {
   // plays its own bespoke cutscene before the battle scene opens; every repeat skips straight to
   // enterBattle() as normal.
   predatorFirstSeen = { boar: false, dog: false, cat: false, wolf: false };
+  // v0.39 — Area first-visit cutscenes (roadmap task 23, the last piece of the cutscene arc):
+  // resets per run, same as every other milestone flag above — confirmed by Sean for the whole
+  // queued predator/area cutscene batch (design doc open question 13). Only the 7 screens that
+  // don't already have their own dedicated arrival cutscene are listed here — Beach's arrival IS
+  // the crash-landing intro, and Wren's Camp's arrival IS the first-meeting cinematic, so neither
+  // needs a second, near-identical "you arrive somewhere new" cutscene layered on top.
+  areaFirstSeen = { camp: false, stream: false, ridge: false, jungle: false, shipwreck: false, lowtide: false, secondisland: false };
   // v0.28 — Island Trust: a completely separate hidden global from Wren's `trust` above (see the
   // ISLAND TRUST section for the full design note). Never rendered anywhere — nothing here to
   // reset besides the state itself.
