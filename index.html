@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.43</title>
+<title>Crash Beach — Prototype v0.44</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -351,7 +351,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.43 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required — and the first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too, and so does the first time you reach every other part of the island.</p>
+  <p class="note">Prototype v0.44 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required — and the first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too, and so does the first time you reach every other part of the island.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -1549,6 +1549,34 @@ function csFigure(x, y, scale, opts) {
   }
   ctx.restore();
 }
+// v0.44 — draws the real player/Wren sprite art (already used on the live map, see drawPlayer()/
+// drawWren()) inside a cutscene, as a straight swap-in replacement for csFigure() at the same
+// (x, y, scale, opts) call sites below — matches csFigure()'s own local coordinate convention
+// (ground/shadow at local y=96, figure spanning up to roughly local y=-46) so no cutscene panel's
+// already-tuned position or camera framing needs to change just because the art changed.
+// Falls back to the original csFigure() blob in two cases: the sprite hasn't finished decoding yet
+// (the same near-instant decode-window every other sprite in the game already falls back for), and
+// any pose the static single-idle-frame sprite can't represent — armsUp / raiseStick. Those poses,
+// and the four predator first-encounter cutscenes (which need two visibly DIFFERENT dramatic poses
+// per scene — calm/distant then alert/lunging/crouching — that a single static idle image can't
+// tell apart), deliberately keep using the bespoke silhouette art; see the Build Log for why.
+function csRealFigure(x, y, scale, opts) {
+  opts = opts || {};
+  const key = opts.wren ? 'wren' : 'player';
+  if (!spriteReady(key)) { csFigure(x, y, scale, opts); return; } // decode-window fallback
+  const facing = opts.facing || 1;
+  const w = 52, h = 130; // matched to csFigure's own apparent figure size at scale 1
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath(); ctx.ellipse(0, 96, 30, 8, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.save();
+  ctx.scale(facing, 1);
+  ctx.drawImage(SPRITES[key], -w / 2, 92 - h, w, h);
+  ctx.restore();
+  ctx.restore();
+}
 // A prone, face-down figure (washed up on the sand) — panel 3 of the crash-landing intro.
 function csFigureProne(x, y, scale, bodyColor) {
   ctx.save();
@@ -1872,7 +1900,7 @@ const CUTSCENES = {
         csDriftwood(1080, 660, 1.0);
         csPalmTree(1250, 760, 1.1, Math.sin(t * 0.5) * 0.15, theme);
         csPalmTree(1370, 720, 0.85, Math.sin(t * 0.5 + 1) * 0.15, theme);
-        csFigure(880, 610, 1.0, { facing: 1, bodyColor: theme.player });
+        csRealFigure(880, 610, 1.0, { facing: 1, bodyColor: theme.player });
       },
     },
   ],
@@ -1892,7 +1920,7 @@ const CUTSCENES = {
         csDriftwood(230, 600, 0.8);
         csPalmTree(1250, 760, 1.1, Math.sin(t * 0.5) * 0.15, theme);
         csPalmTree(1370, 720, 0.85, Math.sin(t * 0.5 + 1) * 0.15, theme);
-        csFigure(900, 620, 1.0, { facing: 1, bodyColor: theme.player });
+        csRealFigure(900, 620, 1.0, { facing: 1, bodyColor: theme.player });
       },
     },
     {
@@ -1907,7 +1935,7 @@ const CUTSCENES = {
         csPalmTree(1080, 800, 1.0, Math.sin(t * 0.4 + 1.3) * 0.12, theme);
         const rustle = Math.sin(t * 14) * 6;
         csBush(650, 620, 2.0, rustle, theme);
-        csFigure(340, 660, 1.0, { facing: 1, bodyColor: theme.player });
+        csRealFigure(340, 660, 1.0, { facing: 1, bodyColor: theme.player });
       },
     },
     {
@@ -1964,7 +1992,7 @@ const CUTSCENES = {
         csStormySky(0, 0, 900, 600, 1);
         csRainStreaks(0, 0, 900, 600, 1, t);
         csPalmTree(220, 560, 0.9, Math.sin(t * 1.6 + 1) * 0.22, theme);
-        csFigure(500, 500, 0.9, { facing: -1, bodyColor: theme.player });
+        csRealFigure(500, 500, 0.9, { facing: -1, bodyColor: theme.player });
       },
     },
   ],
@@ -2171,7 +2199,7 @@ const CUTSCENES = {
       caption: 'A gap in the treeline opens onto a clearing — driftwood, a lean-to, somewhere to actually rest.',
       draw(t, theme) {
         drawCampBackground(theme);
-        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+        csRealFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
       },
     },
   ],
@@ -2182,7 +2210,7 @@ const CUTSCENES = {
       caption: 'The trees thin out around a running stream — real fresh water, if nothing else out here.',
       draw(t, theme) {
         drawStreamBackground(theme);
-        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+        csRealFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
       },
     },
   ],
@@ -2193,7 +2221,7 @@ const CUTSCENES = {
       caption: 'The path climbs clear of the treeline. From up here, you can finally see how much ocean there is.',
       draw(t, theme) {
         drawRidgeBackground(theme);
-        csFigure(450, 480, 1.05, { facing: 1, bodyColor: theme.player });
+        csRealFigure(450, 480, 1.05, { facing: 1, bodyColor: theme.player });
       },
     },
   ],
@@ -2204,7 +2232,7 @@ const CUTSCENES = {
       caption: 'The canopy closes in overhead, thick and humid. Whatever else is in here, it has the advantage.',
       draw(t, theme) {
         drawJungleBackground(theme);
-        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+        csRealFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
       },
     },
   ],
@@ -2215,7 +2243,7 @@ const CUTSCENES = {
       caption: 'You wade out past the shallows to what’s left of a wreck, half-buried in the sand.',
       draw(t, theme) {
         drawShipwreckBackground(theme);
-        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+        csRealFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
       },
     },
   ],
@@ -2226,7 +2254,7 @@ const CUTSCENES = {
       caption: 'More wreckage, further out — only reachable, and only some of it, when the tide pulls back.',
       draw(t, theme) {
         drawLowtideBackground(theme);
-        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+        csRealFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
       },
     },
   ],
@@ -2237,7 +2265,7 @@ const CUTSCENES = {
       caption: 'The raft holds. A second island rises out of the water ahead of you — nobody’s been here yet.',
       draw(t, theme) {
         drawSecondIslandBackground(theme);
-        csFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
+        csRealFigure(450, 470, 1.05, { facing: 1, bodyColor: theme.player });
       },
     },
   ],
