@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.44</title>
+<title>Crash Beach — Prototype v0.45</title>
 <style>
   html, body {
     margin: 0; padding: 0; min-height: 100%;
@@ -210,6 +210,27 @@
   .battleItemDesc { opacity: 0.7; font-size: 11px; }
   #battleItemBackBtn { margin-top: 4px; }
 
+  /* v0.45 — the dodge/block timing meter (item 3/4 of the 2026-09-08 playthrough feedback). Three
+     contiguous zones sized to spec (25% dodge / 60% partial / 15% miss, widened in the player's
+     favor for one turn when Defend was chosen — see startDodgeMeter()); a marker sweeps the track
+     and the player locks it in with SPACE or the Stop! button. */
+  #battleDodgeMeter { width: 100%; max-width: 480px; margin-bottom: 16px; text-align: center; }
+  .dodgePrompt { font-size: 12.5px; color: #ffe066; margin-bottom: 8px; animation: dodgePulse 0.8s ease-in-out infinite; }
+  @keyframes dodgePulse { 0%,100% { opacity: 0.7; } 50% { opacity: 1; } }
+  .dodgeTrack {
+    position: relative; height: 24px; border-radius: 6px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.3); display: flex; margin-bottom: 10px;
+  }
+  .dodgeZone { height: 100%; }
+  .dodgeZoneDodge { background: #3fae5c; }
+  .dodgeZonePartial { background: #d4a12f; }
+  .dodgeZoneMiss { background: #c0392b; }
+  #dodgeMarker {
+    position: absolute; top: -3px; bottom: -3px; width: 4px; left: 0%;
+    background: #fff; box-shadow: 0 0 6px #fff, 0 0 2px #fff;
+  }
+  #dodgeStopBtn { max-width: 200px; margin: 0 auto; font-weight: bold; }
+
   #meetingPanel h3 { margin: 0 0 12px; color: #ffe066; font-size: 16px; text-align: center; }
   .meetingNarrative {
     max-width: 460px; font-style: italic; font-size: 14px; line-height: 1.6;
@@ -351,7 +372,7 @@
     <h2>Crash Beach</h2>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.44 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare, no timing required — and the first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too, and so does the first time you reach every other part of the island.</p>
+  <p class="note">Prototype v0.45 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare. Whoever notices whom first gets a free opening hit — face a predator as it closes in and you strike first; get caught looking the wrong way and it does — and every one of its counters after that comes down to a dodge/block meter: stop it right (SPACE or the on-screen button) to avoid or soften the hit. The first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too, and so does the first time you reach every other part of the island.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -492,6 +513,18 @@
         </div>
       </div>
       <div id="battleLog"></div>
+      <!-- v0.45 — the dodge/block timing meter; shown in place of #battleMenu on every predator
+           counter-turn. See startDodgeMeter()/resolveDodgeMeter() in the script. -->
+      <div id="battleDodgeMeter" style="display:none">
+        <div id="dodgePrompt" class="dodgePrompt">Incoming!</div>
+        <div class="dodgeTrack">
+          <div id="dodgeZoneDodge" class="dodgeZone dodgeZoneDodge"></div>
+          <div id="dodgeZonePartial" class="dodgeZone dodgeZonePartial"></div>
+          <div id="dodgeZoneMiss" class="dodgeZone dodgeZoneMiss"></div>
+          <div id="dodgeMarker"></div>
+        </div>
+        <button id="dodgeStopBtn" class="battleBtn">🛑 Stop!</button>
+      </div>
       <div id="battleMenu">
         <button id="battleAttackBtn" class="battleBtn">⚔️ Attack</button>
         <button id="battleDefendBtn" class="battleBtn">🛡️ Defend</button>
@@ -1076,6 +1109,14 @@ const battleDefendBtn = document.getElementById('battleDefendBtn');
 const battleItemBtn = document.getElementById('battleItemBtn');
 const battleSpareBtn = document.getElementById('battleSpareBtn');
 const battleFleeBtn = document.getElementById('battleFleeBtn');
+// v0.45 — the dodge/block timing meter. See the DODGE/BLOCK METER block in the BATTLE SCENE section.
+const battleDodgeMeterEl = document.getElementById('battleDodgeMeter');
+const dodgePromptEl = document.getElementById('dodgePrompt');
+const dodgeZoneDodgeEl = document.getElementById('dodgeZoneDodge');
+const dodgeZonePartialEl = document.getElementById('dodgeZonePartial');
+const dodgeZoneMissEl = document.getElementById('dodgeZoneMiss');
+const dodgeMarkerEl = document.getElementById('dodgeMarker');
+const dodgeStopBtn = document.getElementById('dodgeStopBtn');
 const meetingPanel = document.getElementById('meetingPanel');
 const meetOpenBtn = document.getElementById('meetOpenBtn');
 const meetCautiousBtn = document.getElementById('meetCautiousBtn');
@@ -2769,6 +2810,9 @@ window.addEventListener('keydown', e => {
   if (k === 'c' && !keys['c']) toggleCraftPanel();
   if (k === 'h' && !keys['h']) goHunting();
   if (k === 'k' && !keys['k']) manualSave();
+  // v0.45 — SPACE locks in the dodge/block meter, same key the pre-v0.32 real-time block window
+  // used to use, when a meter roll is actually active.
+  if (e.key === ' ' && battleDodge && !battleDodge.resolved) resolveDodgeMeter();
   keys[k] = true;
   if (e.key === ' ') e.preventDefault();
 });
@@ -3267,8 +3311,10 @@ function resetGame() {
     x: W/2, y: H - 90, health: 100, thirst: 100, hunger: 100, facing: 1,
     spearDurability: SPEAR_DURABILITY, hasCanteen: false, canteenWater: 0,
     spearUpgraded: false, spearReinforced: false, spearMastered: false, hasPeltCloak: false, hasRaft: false,
-    // v0.32 — true only for the round just chosen inside the battle scene; halves the predator's
-    // counter-attack damage that round, then cleared. See battleResolveRound().
+    // v0.32 — true only for the round just chosen inside the battle scene. v0.45: no longer a flat
+    // damage halving — Defend now "braces" the very next dodge-meter roll, widening the dodge zone
+    // and shrinking the miss zone in the player's favor for that one turn, then clearing. See
+    // startDodgeMeter().
     battleDefending: false,
     // v0.33 — leveling: two independent tracks, both starting fresh at level 1 with 0 banked XP.
     // See the PLAYER LEVELING section for what level/craftingLevel actually change.
@@ -3283,7 +3329,11 @@ function resetGame() {
     // rather than wandered into; gates Wren's hunt-lethality bonus (see updatePredator()).
     fromHunt: false, wrenJoins: false,
     // v0.32 — battle-scene HP, set fresh by enterBattle() each encounter (see BATTLE SCENE below).
-    battleHp: 0, battleMaxHp: 0
+    battleHp: 0, battleMaxHp: 0,
+    // v0.45 — 'player' or 'predator', set the instant it reaches engage range (see
+    // updatePredator()'s 'approaching' branch) from whether the player was facing its side; decides
+    // who gets the battle scene's free unanswered opening strike. See battleResolveOpeningExchange().
+    battleAdvantage: null
   };
   wren = {
     x: WREN_HOME_X, y: WREN_HOME_Y, targetX: WREN_HOME_X, targetY: WREN_HOME_Y,
@@ -4751,6 +4801,12 @@ function updatePredator(dt) {
       // the cutscene's onComplete — same deferred-timer pattern startSurge() already uses for the
       // storm-tier cutscenes. Every repeat of an already-seen type skips straight to enterBattle(),
       // exactly like a repeat storm tier skips straight to its quick banner.
+      // v0.45 — item 3/4 of the 2026-09-08 playthrough feedback: whether the player was facing the
+      // predator's side right as it reaches engage range decides who gets the battle scene's free
+      // opening strike (see battleResolveOpeningExchange()). player.facing only ever tracks
+      // left/right (no vertical facing exists anywhere in the game), so this is a plain horizontal-
+      // side check — the same granularity the sprite flip itself already uses.
+      predator.battleAdvantage = ((predator.x - player.x) * player.facing >= 0) ? 'player' : 'predator';
       const type = predator.type;
       if (!predatorFirstSeen[type]) {
         predatorFirstSeen[type] = true;
@@ -4909,6 +4965,13 @@ function enterBattle() {
   predator.battleMaxHp = Math.round(cfg.hitsToFlee * 12 * predatorLevelScaleMult());
   predator.battleHp = predator.battleMaxHp;
   player.battleDefending = false;
+  // v0.45 — defensive reset: guarantees a clean dodge-meter UI state at the start of every fight,
+  // in case anything ever ends a battle while a meter roll is mid-flight (nothing in the normal
+  // flow does this today — every path resolves its meter before the battle can end — but this
+  // costs nothing and rules the class of bug out entirely rather than relying on that staying true).
+  if (battleDodge) { battleDodge.resolved = true; if (battleDodge.raf) cancelAnimationFrame(battleDodge.raf); battleDodge = null; }
+  battleDodgeMeterEl.style.display = 'none';
+  battleMenuEl.style.display = 'flex';
   activeOverlay = 'battle';
   paused = true;
   // v0.33 — Alpha Wolf's label starts with a vowel sound ("alpha"), so the old hardcoded "A "
@@ -4925,11 +4988,51 @@ function enterBattle() {
   // into this scene, so the flag now fires here instead.
   if (!firstTelegraphSeen) {
     firstTelegraphSeen = true;
-    addBattleLog('Pick Attack, Defend, Item, or Flee each round — no timing needed, just choose.');
+    addBattleLog('Pick Attack, Defend, Item, or Flee each round. When it strikes back, stop the meter — green dodges clean, yellow softens it, red lands full.');
   }
   updateBattleUI();
   battlePanel.style.display = 'flex';
   ensureAudio();
+  battleResolveOpeningExchange(cfg);
+}
+
+// v0.45 — item 3/4 of the 2026-09-08 playthrough feedback: resolves the free, unanswered opening
+// strike set up by predator.battleAdvantage (see updatePredator()'s 'approaching' branch). Player
+// advantage lands a real attack with no return hit; predator advantage lands a real hit with no
+// way to reduce or dodge it — it caught the player looking the wrong way. Every predator turn
+// AFTER this opening beat goes through the dodge meter (see startDodgeMeter()) regardless of which
+// side started the fight — advantage only ever decides who gets this one free exchange.
+function battleResolveOpeningExchange(cfg) {
+  if (predator.battleAdvantage === 'player') {
+    if (player.spearDurability <= 0) {
+      addBattleLog("You spot it first, but there's no spear in hand to strike with.");
+      return;
+    }
+    player.spearDurability -= 1;
+    const dmg = playerAttackDamage();
+    predator.battleHp = Math.max(0, predator.battleHp - dmg);
+    sfx.block();
+    let line = "You spot it first and land a free strike before it's ready! -" + dmg + ' to the ' + cfg.label + '.';
+    if (player.spearDurability <= 0) { sfx.break(); line += ' Your spear finally gives out!'; }
+    addBattleLog(line);
+    updateHud();
+    updateBattleUI();
+    if (predator.battleHp <= 0) { battleWin(); return; }
+  } else if (predator.battleAdvantage === 'predator') {
+    const dmg = Math.round(cfg.damage * predatorLevelScaleMult());
+    player.health -= dmg;
+    sfx.hit();
+    addBattleLog('It catches you looking the other way and gets a hit in before you can react! -' + dmg + ' health.');
+    updateHud();
+    if (player.health <= 0) {
+      player.health = 0;
+      exitBattleUI();
+      killPlayer(predator.type);
+      return;
+    }
+    battleMaybeInjureWren(cfg);
+    updateBattleUI();
+  }
 }
 
 function exitBattleUI() {
@@ -4970,15 +5073,93 @@ function battleWrenAssist() {
   return dmg;
 }
 
-function battlePredatorCounter(cfg) {
+// ---- dodge/block meter (v0.45) ----
+// Item 3/4 of the 2026-09-08 playthrough feedback: a skill-based defense on every predator
+// counter-turn, replacing the old guaranteed-hit flow that had no way to avoid damage at all. The
+// track is three contiguous zones sized to Sean's own spec — a clean stop in the green ~25% fully
+// dodges the hit, the yellow ~60% softens it (the same 45%-of-damage reduction the old Defend
+// action used to guarantee outright), the red ~15% means it lands at full force. A marker sweeps
+// the track on a timer; the player locks it in with SPACE or the on-screen Stop! button. Choosing
+// Defend (see battleDefend()) "braces" the very next roll — the zones shift sharply in the
+// player's favor for that one turn only — rather than a flat guaranteed reduction, so Defend stays
+// meaningfully different from Attack now that the meter fires on every turn regardless of what the
+// player picked (a deliberate, disclosed interpretation — Sean's own spec covered the meter's odds,
+// not what Defend should do once every turn already gets a meter).
+const DODGE_ZONE_DODGE = 0.25, DODGE_ZONE_PARTIAL = 0.60; // remaining 0.15 is the miss zone
+const DODGE_ZONE_DODGE_BRACED = 0.45, DODGE_ZONE_MISS_BRACED = 0.05; // Defend's one-turn bonus
+let battleDodge = null; // { cfg, sweepMs, startTime, resolved, dodgeWidth, partialWidth, raf }
+
+function dodgeSweepMs(cfg) {
+  // Tougher/more-damaging predators sweep a little faster — harder to time, not just harder to
+  // out-hit — floored well above "impossible," since this only needs to feel harder, not be unfair.
+  return Math.max(750, Math.round(1500 - (cfg.damage - 14) * 12));
+}
+
+function dodgeMarkerPos(bd, now) {
+  const cycle = bd.sweepMs * 2;
+  const elapsed = (now - bd.startTime) % cycle;
+  return elapsed < bd.sweepMs ? elapsed / bd.sweepMs : 1 - (elapsed - bd.sweepMs) / bd.sweepMs;
+}
+
+function dodgeMeterFrame(now) {
+  if (!battleDodge || battleDodge.resolved) return;
+  const t = dodgeMarkerPos(battleDodge, now);
+  dodgeMarkerEl.style.left = (t * 100) + '%';
+  battleDodge.raf = requestAnimationFrame(dodgeMeterFrame);
+}
+
+function startDodgeMeter(cfg) {
+  const braced = player.battleDefending;
+  player.battleDefending = false;
+  const dodgeWidth = braced ? DODGE_ZONE_DODGE_BRACED : DODGE_ZONE_DODGE;
+  const missWidth = braced ? DODGE_ZONE_MISS_BRACED : (1 - DODGE_ZONE_DODGE - DODGE_ZONE_PARTIAL);
+  const partialWidth = 1 - dodgeWidth - missWidth;
+  dodgeZoneDodgeEl.style.width = (dodgeWidth * 100) + '%';
+  dodgeZonePartialEl.style.width = (partialWidth * 100) + '%';
+  dodgeZoneMissEl.style.width = (missWidth * 100) + '%';
+  dodgePromptEl.textContent = braced
+    ? 'Braced! Stop the meter — the odds are with you this turn.'
+    : 'Incoming! Stop the meter — green dodges clean, yellow softens it, red lands full.';
+  battleMenuEl.style.display = 'none';
+  battleDodgeMeterEl.style.display = 'block';
+  battleDodge = { cfg, sweepMs: dodgeSweepMs(cfg), startTime: performance.now(), resolved: false, dodgeWidth, partialWidth };
+  battleDodge.raf = requestAnimationFrame(dodgeMeterFrame);
+}
+
+// posOverride (0..1) lets a test (or a future accessibility option) resolve a specific zone
+// deterministically instead of racing real time.
+function resolveDodgeMeter(posOverride) {
+  if (!battleDodge || battleDodge.resolved) return;
+  const bd = battleDodge;
+  bd.resolved = true;
+  if (bd.raf) cancelAnimationFrame(bd.raf);
+  const t = posOverride !== undefined ? posOverride : dodgeMarkerPos(bd, performance.now());
+  const zone = t < bd.dodgeWidth ? 'dodge' : (t < bd.dodgeWidth + bd.partialWidth ? 'partial' : 'miss');
+  battleDodgeMeterEl.style.display = 'none';
+  battleMenuEl.style.display = 'flex';
+  battleDodge = null;
+  applyDodgeResult(bd.cfg, zone);
+}
+
+function applyDodgeResult(cfg, zone) {
   // v0.33 — world scaling: same predatorLevelScaleMult() enterBattle() used for max HP, applied
   // here to the counter-attack's damage too, so a higher-level run's fights hit harder end to end.
   let dmg = Math.round(cfg.damage * predatorLevelScaleMult());
-  if (player.battleDefending) dmg = Math.round(dmg * 0.45);
-  player.battleDefending = false;
+  let line;
+  if (zone === 'dodge') {
+    dmg = 0;
+    sfx.block();
+    line = 'You read it perfectly and dodge clean — no damage!';
+  } else if (zone === 'partial') {
+    dmg = Math.round(dmg * 0.45);
+    sfx.block();
+    line = 'You partially block it! -' + dmg + ' health.';
+  } else {
+    sfx.hit();
+    line = 'You mistime it — the ' + cfg.label + "'s strike lands full force! -" + dmg + ' health.';
+  }
   player.health -= dmg;
-  sfx.hit();
-  addBattleLog('The ' + cfg.label + ' strikes back! -' + dmg + ' health.');
+  addBattleLog(line);
   updateHud();
   if (player.health <= 0) {
     player.health = 0;
@@ -4988,6 +5169,10 @@ function battlePredatorCounter(cfg) {
   }
   battleMaybeInjureWren(cfg);
   updateBattleUI();
+}
+
+function battlePredatorCounter(cfg) {
+  startDodgeMeter(cfg);
 }
 
 function battleWin() {
@@ -5125,6 +5310,7 @@ battleDefendBtn.onclick = battleDefend;
 battleItemBtn.onclick = battleOpenItemMenu;
 battleSpareBtn.onclick = battleSpare;
 battleFleeBtn.onclick = battleFlee;
+dodgeStopBtn.onclick = () => resolveDodgeMeter();
 
 // v0.26 — Wren's hidden injury. Called from updatePredator()'s lunge resolution, once per lunge,
 // regardless of whether the player themself was hit. She only has a chance to be caught at all if
