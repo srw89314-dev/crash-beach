@@ -69,11 +69,23 @@ At the end of the slice:
 If any answer is no, v0.50 is not finished.
 
 ## Frozen implementation queue — Phase 1 opening
-1. Add a lightweight automated smoke/regression harness before source extraction.
-2. Verify the untouched v0.45 baseline through the harness.
-3. Extract inline CSS to `css/game.css` with zero intended visual/behavior change.
-4. Re-run regression checks and compare the page before/after extraction.
-5. Only then begin the first v0.50 presentation changes.
+1. [x] Add a lightweight automated smoke/regression harness before source extraction.
+2. [x] Verify the untouched v0.45 baseline through the harness.
+3. [x] Extract inline CSS to `css/game.css` with zero intended visual/behavior change.
+4. [x] Re-run regression checks after extraction. CI passed on the extracted-stylesheet commit.
+5. [ ] Begin the first v0.50 presentation changes.
 
 ### Safety rule
 Every structural extraction must be behavior-preserving and independently reversible. Do not combine refactoring with redesign in the same change.
+
+## Phase 1 progress — 2026-10-07
+- Added zero-dependency `tests/smoke.mjs` structural regression checks.
+- Added GitHub Actions workflow `.github/workflows/smoke.yml`.
+- First CI run passed while `index.html` was still behaviorally untouched, establishing an executable structural baseline.
+- Extracted 21,458 bytes of inline CSS into `css/game.css`.
+- Updated `index.html` to load the external stylesheet.
+- Post-extraction CI run passed.
+- No intentional gameplay or visual redesign was included in the extraction.
+
+### Next safe task
+Begin the v0.50 presentation foundation in the external stylesheet, starting with responsive shell/HUD primitives and design tokens before changing game-world art. This should remain isolated from gameplay logic.
