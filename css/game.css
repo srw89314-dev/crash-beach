@@ -653,3 +653,136 @@ button {
     animation: none !important;
   }
 }
+
+
+/* v0.50 — device-adaptive controls.
+   Desktop/tablet keep utility actions directly visible. Phones collapse Hunt/Craft/Save into
+   one Tools tray while movement, contextual interaction, and spear remain one-touch actions. */
+#mobileUtilityTray {
+  display: contents;
+}
+
+#mobileToolsBtn {
+  display: none;
+}
+
+#mobileUtilityMenu {
+  display: contents;
+}
+
+#mobileUtilityMenu > button {
+  font-family: inherit;
+}
+
+@media (max-width: 640px) {
+  #mobileUtilityTray {
+    display: block;
+    position: absolute;
+    right: 3%;
+    bottom: 56%;
+    z-index: 8;
+  }
+
+  #mobileToolsBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 68px;
+    min-height: 38px;
+    padding: 6px 9px;
+    border: 2px solid rgba(180,150,255,0.65);
+    border-radius: 9px;
+    background: rgba(18,20,30,0.72);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    touch-action: manipulation;
+  }
+
+  #mobileUtilityMenu {
+    display: none;
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    flex-direction: column;
+    gap: 6px;
+    min-width: 92px;
+    padding: 6px;
+    border: 1px solid var(--cb-panel-border);
+    border-radius: var(--cb-radius-md);
+    background: var(--cb-panel-bg);
+    box-shadow: 0 5px 18px rgba(0,0,0,0.45);
+  }
+
+  #mobileUtilityTray.open #mobileUtilityMenu {
+    display: flex;
+  }
+
+  #mobileUtilityMenu #huntBtn,
+  #mobileUtilityMenu #craftBtn,
+  #mobileUtilityMenu #saveBtn {
+    position: static;
+    width: 100%;
+    max-width: none;
+    min-height: 38px;
+    aspect-ratio: auto;
+    border-radius: 7px;
+    font-size: 9px;
+    padding: 5px 8px;
+    box-sizing: border-box;
+  }
+
+  #interactBtn,
+  #actionBtn {
+    width: clamp(52px, 14%, 68px);
+    max-width: 68px;
+  }
+
+  #joyBase {
+    left: 3%;
+    width: clamp(76px, 22%, 104px);
+  }
+}
+
+/* Extremely small/short phones: preserve effective controls while reducing obstruction. */
+@media (max-width: 430px), (max-height: 430px) and (orientation: landscape) {
+  #mobileUtilityTray {
+    bottom: 54%;
+  }
+
+  #mobileToolsBtn {
+    min-width: 62px;
+    min-height: 34px;
+    font-size: 8px;
+  }
+
+  #mobileUtilityMenu {
+    min-width: 84px;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  #mobileUtilityMenu #huntBtn,
+  #mobileUtilityMenu #craftBtn,
+  #mobileUtilityMenu #saveBtn {
+    min-height: 34px;
+    font-size: 8px;
+  }
+
+  #joyBase {
+    width: clamp(68px, 20%, 92px);
+  }
+
+  #interactBtn,
+  #actionBtn {
+    width: clamp(48px, 13%, 60px);
+    max-width: 60px;
+    font-size: 8px;
+  }
+}
+
+/* Cutscenes must hide the tray itself, not just its child utility buttons. */
+#wrap.cutsceneActive #mobileUtilityTray {
+  display: none !important;
+}
