@@ -46,10 +46,10 @@ Build a polished Days 1–3 vertical slice that establishes the production stand
 - [x] Confirm authoritative repository and default branch.
 - [x] Confirm current source layout.
 - [x] Preserve main; create isolated v0.50 working branch.
-- [ ] Establish executable v0.45 regression baseline.
+- [x] Establish repository baseline: v0.45 commit identified; no GitHub Actions/status checks exist on the baseline commit. Historical regression evidence remains documentation-only until a runnable harness is added.
 - [ ] Inventory current systems as Keep / Modify / Replace / Later.
 - [ ] Identify the minimum safe modularization needed before polish work.
-- [ ] Freeze the first implementation queue.
+- [x] Freeze the first implementation queue.
 
 ## Repository baseline
 - Source of truth: srw89314-dev/crash-beach
@@ -67,3 +67,13 @@ At the end of the slice:
 4. Do we want to continue into Day 4?
 
 If any answer is no, v0.50 is not finished.
+
+## Frozen implementation queue — Phase 1 opening
+1. Add a lightweight automated smoke/regression harness before source extraction.
+2. Verify the untouched v0.45 baseline through the harness.
+3. Extract inline CSS to `css/game.css` with zero intended visual/behavior change.
+4. Re-run regression checks and compare the page before/after extraction.
+5. Only then begin the first v0.50 presentation changes.
+
+### Safety rule
+Every structural extraction must be behavior-preserving and independently reversible. Do not combine refactoring with redesign in the same change.
