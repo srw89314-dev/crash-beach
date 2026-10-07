@@ -358,3 +358,298 @@
     h2 { font-size: 15px; }
     #inventory { font-size: 9.5px; padding: 4px 7px; line-height: 1.35; }
   }
+
+
+/* ==========================================================================
+   v0.50 — responsive presentation foundation
+   This block establishes reusable layout/design primitives without changing
+   gameplay logic or world rendering. Keep future visual work on these tokens.
+   ========================================================================== */
+:root {
+  --cb-page-bg: #0c1a1f;
+  --cb-text: #eef3f4;
+  --cb-text-muted: #9fb0b8;
+  --cb-accent: #ffe066;
+  --cb-panel-bg: rgba(5, 10, 14, 0.78);
+  --cb-panel-border: rgba(255, 255, 255, 0.22);
+  --cb-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+
+  --cb-space-1: 4px;
+  --cb-space-2: 8px;
+  --cb-space-3: 12px;
+  --cb-space-4: 16px;
+
+  --cb-radius-sm: 6px;
+  --cb-radius-md: 10px;
+  --cb-touch-min: 44px;
+
+  --cb-game-max: 900px;
+  --cb-page-gutter: clamp(8px, 2vw, 20px);
+  --cb-safe-top: env(safe-area-inset-top, 0px);
+  --cb-safe-right: env(safe-area-inset-right, 0px);
+  --cb-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --cb-safe-left: env(safe-area-inset-left, 0px);
+}
+
+html {
+  min-height: 100%;
+  background: var(--cb-page-bg);
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  box-sizing: border-box;
+  color: var(--cb-text);
+  background: var(--cb-page-bg);
+  padding:
+    calc(var(--cb-safe-top) + var(--cb-space-2))
+    calc(var(--cb-safe-right) + var(--cb-page-gutter))
+    calc(var(--cb-safe-bottom) + var(--cb-space-2))
+    calc(var(--cb-safe-left) + var(--cb-page-gutter));
+}
+
+#topBar {
+  width: min(100%, var(--cb-game-max));
+  box-sizing: border-box;
+  justify-content: center;
+  min-height: var(--cb-touch-min);
+  margin: 0 0 var(--cb-space-1);
+  padding: 0 var(--cb-space-2);
+}
+
+#optionsBtn {
+  min-height: var(--cb-touch-min);
+  padding-inline: 14px;
+}
+
+#wrap {
+  width: min(100%, var(--cb-game-max));
+  max-width: var(--cb-game-max);
+  min-width: 0;
+  box-sizing: border-box;
+  isolation: isolate;
+}
+
+canvas {
+  box-sizing: border-box;
+  max-width: 100%;
+  box-shadow: var(--cb-shadow);
+}
+
+#hud {
+  box-sizing: border-box;
+  gap: var(--cb-space-2);
+}
+
+#statPanel,
+#rightHud {
+  min-width: 0;
+}
+
+#rightHud {
+  max-width: 48%;
+}
+
+#inventory {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+#inventory div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#deathScreen, #optionsPanel, #craftPanel, #meetingPanel, #mergePanel,
+#namePanel, #bondedPanel, #estrangedPanel, #battlePanel {
+  padding:
+    max(var(--cb-space-4), var(--cb-safe-top))
+    max(var(--cb-space-4), var(--cb-safe-right))
+    max(var(--cb-space-4), var(--cb-safe-bottom))
+    max(var(--cb-space-4), var(--cb-safe-left));
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Tablet / narrow desktop: retain the same game while tightening chrome. */
+@media (max-width: 900px) {
+  body {
+    justify-content: flex-start;
+  }
+
+  #topBar {
+    flex: 0 0 auto;
+  }
+
+  #wrap {
+    flex: 0 0 auto;
+  }
+
+  p.note {
+    margin-bottom: var(--cb-space-2);
+  }
+}
+
+/* Phone foundation: protect the playfield first, then compress secondary HUD. */
+@media (max-width: 640px) {
+  :root {
+    --cb-page-gutter: 4px;
+  }
+
+  body {
+    padding-top: max(var(--cb-safe-top), 2px);
+    padding-bottom: max(var(--cb-safe-bottom), 2px);
+  }
+
+  #topBar {
+    min-height: 36px;
+    padding-inline: 4px;
+  }
+
+  h2 {
+    font-size: 14px;
+    line-height: 1.1;
+  }
+
+  #optionsBtn {
+    min-height: 36px;
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  canvas {
+    border-width: 2px;
+    border-radius: 4px;
+  }
+
+  #hud {
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    font-size: 10px;
+  }
+
+  #statPanel {
+    width: 44%;
+    max-width: 180px;
+  }
+
+  .statRow {
+    margin-bottom: 3px;
+  }
+
+  .statLabel {
+    font-size: 8.5px;
+  }
+
+  .barBg {
+    height: 8px;
+  }
+
+  #rightHud {
+    max-width: 50%;
+  }
+
+  #timer {
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+
+  #inventory {
+    max-width: 150px;
+    font-size: 8.5px;
+    padding: 3px 5px;
+    line-height: 1.25;
+  }
+
+  #locationTag {
+    top: 6px;
+    max-width: 42%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 9px;
+    padding: 2px 8px;
+  }
+
+  #surgeIndicator {
+    top: 27px;
+    max-width: 46%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 8.5px;
+    padding: 2px 7px;
+  }
+
+  #instructions {
+    bottom: 5px;
+    padding: 0 22%;
+    box-sizing: border-box;
+    font-size: 9px;
+  }
+
+  #banner {
+    max-width: 74%;
+    font-size: 15px;
+  }
+
+  #cutsceneCaption {
+    left: 4%;
+    right: 4%;
+    bottom: 8%;
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+}
+
+/* Short landscape phones are the harshest viewport. Reduce outer chrome rather
+   than shrinking the canvas into a postage stamp. */
+@media (max-height: 520px) and (orientation: landscape) {
+  body {
+    justify-content: flex-start;
+    padding-top: max(var(--cb-safe-top), 1px);
+    padding-bottom: max(var(--cb-safe-bottom), 1px);
+  }
+
+  #topBar {
+    min-height: 28px;
+    margin: 0;
+  }
+
+  #topBar h2 {
+    font-size: 12px;
+  }
+
+  #optionsBtn {
+    min-height: 28px;
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+
+  p.note {
+    display: none;
+  }
+}
+
+/* Respect users who ask the OS to reduce motion. Gameplay timing is untouched;
+   this only removes decorative CSS animation/transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+  }
+
+  .dodgePrompt,
+  #cutsceneContinueHint.show {
+    animation: none !important;
+  }
+}
