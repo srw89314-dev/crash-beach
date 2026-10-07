@@ -69,9 +69,14 @@
     <div id="banner"></div>
     <div id="instructions">Drag left to move • fight from the battle menu when a predator closes in • green to interact • purple opens crafting • red goes hunting</div>
     <div id="joyBase"><div id="joyKnob"></div></div>
-    <div id="huntBtn">HUNT</div>
-    <div id="craftBtn">—</div>
-    <div id="saveBtn">SAVE</div>
+    <div id="mobileUtilityTray" aria-label="Tools">
+      <button id="mobileToolsBtn" type="button" aria-expanded="false">☰ TOOLS</button>
+      <div id="mobileUtilityMenu">
+        <button id="huntBtn" type="button">HUNT</button>
+        <button id="craftBtn" type="button">CRAFT</button>
+        <button id="saveBtn" type="button">SAVE</button>
+      </div>
+    </div>
     <div id="interactBtn">—</div>
     <div id="actionBtn">SPEAR</div>
 
@@ -2477,6 +2482,18 @@ joyBase.addEventListener('pointermove', e => { if (e.pointerId !== joyPointerId)
 function joyEnd(e) { if (e.pointerId !== joyPointerId) return; joyPointerId = null; joyReset(); }
 joyBase.addEventListener('pointerup', joyEnd);
 joyBase.addEventListener('pointercancel', joyEnd);
+
+// v0.50 — mobile utility tray: phones keep movement + contextual interaction + spear
+// immediately available, while secondary actions share one compact Tools control. Tablet/desktop
+// CSS leaves the three utility buttons exposed, so this changes presentation rather than access.
+const mobileUtilityTray = document.getElementById('mobileUtilityTray');
+const mobileToolsBtn = document.getElementById('mobileToolsBtn');
+mobileToolsBtn.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const opening = !mobileUtilityTray.classList.contains('open');
+  mobileUtilityTray.classList.toggle('open', opening);
+  mobileToolsBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+});
 
 const actionBtn = document.getElementById('actionBtn');
 actionBtn.addEventListener('pointerdown', e => { e.preventDefault(); keys[' '] = true; actionBtn.classList.add('pressed'); actionBtn.setPointerCapture(e.pointerId); });
