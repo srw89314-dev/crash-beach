@@ -3,15 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Crash Beach — Prototype v0.45</title>
+<title>Crash Beach — Three-Day Survival Slice v0.50</title>
 <link rel="stylesheet" href="css/game.css">
 </head>
 <body>
   <div id="topBar">
-    <h2>Crash Beach</h2>
+    <div class="titleLockup">
+      <h1>Crash Beach</h1>
+      <span class="buildLabel">Three-Day Survival Slice · v0.50</span>
+    </div>
+    <button id="journalBtn">▤ Journal <span id="journalCount">0/9</span></button>
     <button id="optionsBtn">⚙ Options</button>
   </div>
-  <p class="note">Prototype v0.45 — choose Solo or Duo, Story or Survival, and Permadeath or Continue, before you begin. Survival is the full challenge: food and water go a little less far, predators grow more frequent and more dangerous, and gathering spots take longer to refill, the longer you last. Story eases all of that up, at the same map and the same choices. In Duo, whether she comes with you into danger is up to her, not you — and Go Hunting (H) lets you seek a fight out instead of waiting for one. A predator encounter now plays out as its own battle scene — Attack, Defend, Item, Flee, or Spare. Whoever notices whom first gets a free opening hit — face a predator as it closes in and you strike first; get caught looking the wrong way and it does — and every one of its counters after that comes down to a dodge/block meter: stop it right (SPACE or the on-screen button) to avoid or soften the hit. The first time you run into each kind of predator, it gets its own short cinematic before the fight starts. On top of that steady climb, the weather isn't always calm — watch for storms, predator swarms, and dry spells passing through. Storms now come in five real severity tiers, Squall up through Hurricane, escalating the longer you last — the first time you hit a new tier plays a short cinematic, with every repeat after that just a quick warning. Kills, crafting, gathering, and every day you survive now earn real XP — leveling up sharpens your Attack, eases your hunger and thirst drain, and eventually makes Flee more reliable and puts something tougher out in the treeline. Continue mode adds real saves — autosaved at a new day or a shelter rest, or manually (K) at camp — so death doesn't have to be the end of a run. The music rotates through several melodic patterns per mood, and a new run now opens with a short cinematic (skippable, shown only once) before you land on the beach — meeting Wren for the first time gets one too, and so does the first time you reach every other part of the island.</p>
+  <p class="note">Survive the opening three days, establish a camp routine, and learn what the island expects from you. Desktop browser build — keyboard recommended.</p>
   <div id="wrap">
     <canvas id="game" width="900" height="600"></canvas>
     <div id="hud">
@@ -66,6 +70,11 @@
     </div>
     <div id="locationTag"></div>
     <div id="surgeIndicator"></div>
+    <aside id="objectiveCard" aria-live="polite">
+      <div class="objectiveEyebrow">CURRENT OBJECTIVE</div>
+      <div id="objectiveTitle">Day 1 · Establish a foothold</div>
+      <div id="objectiveTask">Gather four useful supplies</div>
+    </aside>
     <div id="banner"></div>
     <div id="instructions">Drag left to move • fight from the battle menu when a predator closes in • green to interact • purple opens crafting • red goes hunting</div>
     <div id="joyBase"><div id="joyKnob"></div></div>
@@ -95,7 +104,7 @@
       <h3>How to play</h3>
       <div class="howto">
         <b>Move</b> — WASD / Arrow keys, or drag the left circle.<br>
-        <b>Fight</b> — no timing or reflexes needed anymore. When a predator closes in, the screen shifts into its own battle scene with a simple menu: <b>Attack</b> (costs 1 spear durability, always lands), <b>Defend</b> (cuts the predator's next hit), <b>Item</b> (use a Bandage/food/tablet from your pack without leaving the fight), <b>Flee</b> (try to break off — chance of success, and a miss gives it a free hit), and <b>Spare</b> (once it's weakened enough, let it go clean — no kill, no drops, but the island notices mercy). Fight it down to nothing instead and it drops meat, bone, and pelt. Your spear has limited durability and can break mid-fight — Attack turns off until you repair it (Item/Flee/Defend still work). Three kinds prowl the beach from the start — a boar, wild dogs, and a big cat — each with its own toughness, bite, and how hard it is to shake off with Flee. A fourth, the alpha wolf — tougher than all three — starts showing up once you've leveled up enough (see Leveling below).<br>
+        <b>Fight</b> — Crash Beach and both camps are Safe Zones, so the opening gives you room to learn. Predators are encountered only after you choose to venture into dangerous territory such as the Jungle Interior or Second Island. When one closes in, the screen shifts into its own battle scene with a simple menu: <b>Attack</b> (costs 1 spear durability, always lands), <b>Defend</b> (cuts the predator's next hit), <b>Item</b>, <b>Flee</b>, or <b>Spare</b>. Spears now hold five attacks and cost one wood to rebuild; wood sources also hold more material.<br>
         <b>Go Hunting</b> — H or the red button, anywhere a predator could spawn (Crash Beach, Jungle Interior, the Second Island) and you're not already in a fight. Instead of waiting for something to find you, you go looking for it. <i>(Duo only)</i> Bring <span class="dyn-wrenName">Wren</span> along and, past a real level of trust, she'll wade into the fight at your side — the more she trusts you, the harder she hits.<br>
         <b>Interact</b> — E or the green button. Drinks at a water source, forages coconuts, catches fish, gathers wood or reeds, eats, or rests at your shelter — whichever is nearest and relevant.<br>
         <b>Craft</b> — C or the purple button opens the crafting library: browse every known recipe, see what it costs, and make it if you have the goods. Nothing crafts automatically anymore. A kill's spoils go further at the fire: cook meat for real food, lash a bone onto your spear for extra durability, or stitch a pelt into a cloak that cuts your rest cooldown.<br>
@@ -131,6 +140,11 @@
         <label><input type="checkbox" id="sfxMuteChk"> Mute sound fx</label>
         <input type="range" id="sfxVolSlider" min="0" max="100" value="60">
       </div>
+      <h3>Pause behavior</h3>
+      <div class="howto" style="margin-bottom:8px;">When enabled, switching away from the game pauses survival timers automatically.</div>
+      <div class="sliderRow">
+        <label><input type="checkbox" id="idlePauseChk" checked> Auto-pause when unfocused</label>
+      </div>
       <button id="resumeBtn" class="bigBtn">Resume</button>
     </div>
 
@@ -139,6 +153,25 @@
       <div class="subhead">Everything you know how to make. Costs refresh each time you open this.</div>
       <div id="recipeList"></div>
       <button id="craftCloseBtn" class="bigBtn">Close</button>
+    </div>
+
+    <div id="journalPanel">
+      <div class="panelKicker">FIELD JOURNAL</div>
+      <h3>Three days to find your footing</h3>
+      <p class="journalIntro">Objectives stay completed for the run. The island remains open after the slice, but these nine steps mark the finished v0.50 experience.</p>
+      <div id="journalObjectives"></div>
+      <button id="journalCloseBtn" class="bigBtn">Return to the beach</button>
+    </div>
+
+    <div id="sliceCompletePanel">
+      <div class="panelKicker">VERTICAL SLICE COMPLETE</div>
+      <h3>You have a foothold.</h3>
+      <div class="meetingNarrative">Three days ago, this was only wreckage and noise. Now there is a route to water, a shelter to return to, and enough hard-earned knowledge to imagine a fourth sunrise.</div>
+      <div id="sliceCompleteStats"></div>
+      <div class="meetingChoices">
+        <button id="sliceContinueBtn" class="meetingBtn">Keep surviving in the open-ended prototype</button>
+        <button id="sliceJournalBtn" class="meetingBtn">Review the field journal</button>
+      </div>
     </div>
 
     <div id="battlePanel">
@@ -214,8 +247,9 @@
     </div>
 
     <div id="namePanel">
-      <h3>Before You Begin</h3>
-      <div class="meetingNarrative">Every run needs two names — yours, and hers, if anyone else washed up too. Leave either blank and Crash Beach will pick a default.</div>
+      <div class="panelKicker">CRASH BEACH · v0.50</div>
+      <h3>Begin the three-day slice</h3>
+      <div class="meetingNarrative">Make the beach survivable, build a routine, and look beyond the shoreline. Choose how demanding the island should be; your objectives stay the same.</div>
       <div id="continueRunBlock" style="display:none; width:100%; max-width:360px; margin-bottom:16px; padding:10px; border:1px solid rgba(120,200,255,0.5); border-radius:8px; background:rgba(120,200,255,0.08);">
         <div id="continueRunSummary" style="font-size:12.5px; margin-bottom:8px; opacity:0.9;"></div>
         <button id="continueRunBtn" class="bigBtn" style="background:#3a7ac9; margin-bottom:0;">Continue Run</button>
@@ -260,10 +294,13 @@
     <button id="cutsceneSkipBtn">Skip ▸▸</button>
   </div>
 
+<script src="js/vertical-slice.js"></script>
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
+const Slice = window.CrashBeachSlice;
+if (!Slice) throw new Error('Crash Beach vertical-slice module failed to load.');
 
 const healthFill = document.getElementById('healthBarFill');
 const thirstFill = document.getElementById('thirstBarFill');
@@ -299,6 +336,18 @@ const raftRow = document.getElementById('raftRow');
 const timerEl = document.getElementById('timer');
 const bannerEl = document.getElementById('banner');
 const locationTagEl = document.getElementById('locationTag');
+const objectiveCardEl = document.getElementById('objectiveCard');
+const objectiveTitleEl = document.getElementById('objectiveTitle');
+const objectiveTaskEl = document.getElementById('objectiveTask');
+const journalBtn = document.getElementById('journalBtn');
+const journalCountEl = document.getElementById('journalCount');
+const journalPanel = document.getElementById('journalPanel');
+const journalObjectivesEl = document.getElementById('journalObjectives');
+const journalCloseBtn = document.getElementById('journalCloseBtn');
+const sliceCompletePanel = document.getElementById('sliceCompletePanel');
+const sliceCompleteStatsEl = document.getElementById('sliceCompleteStats');
+const sliceContinueBtn = document.getElementById('sliceContinueBtn');
+const sliceJournalBtn = document.getElementById('sliceJournalBtn');
 const surgeIndicatorEl = document.getElementById('surgeIndicator');
 const deathScreen = document.getElementById('deathScreen');
 const deathNarrativeEl = document.getElementById('deathNarrative');
@@ -608,7 +657,7 @@ renderSaveModeRows();
 
 // ================= AUDIO (synthesized — no external files) =================
 let audioCtx = null;
-const settings = { musicVolume: 0.35, sfxVolume: 0.6, musicMuted: false, sfxMuted: false };
+const settings = { musicVolume: 0.35, sfxVolume: 0.6, musicMuted: false, sfxMuted: false, idleAutoPause: true };
 function ensureAudio() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -733,6 +782,7 @@ function startMusic() {
 const optionsPanel = document.getElementById('optionsPanel');
 const optionsBtn = document.getElementById('optionsBtn');
 const resumeBtn = document.getElementById('resumeBtn');
+const idlePauseChk = document.getElementById('idlePauseChk');
 const craftPanel = document.getElementById('craftPanel');
 const craftCloseBtn = document.getElementById('craftCloseBtn');
 const recipeListEl = document.getElementById('recipeList');
@@ -781,7 +831,8 @@ const playerNameInput = document.getElementById('playerNameInput');
 const wrenNameInput = document.getElementById('wrenNameInput');
 const nameConfirmBtn = document.getElementById('nameConfirmBtn');
 let paused = false;
-let activeOverlay = null; // null | 'options' | 'craft' | 'meeting' | 'merge' | 'names' | 'bonded' | 'estranged' | 'battle' | 'cutscene'
+let idlePaused = false;
+let activeOverlay = null; // null | 'options' | 'craft' | 'journal' | 'sliceComplete' | story/battle/cutscene overlays
 // Player and Wren's names, set once at the start of a run via the name panel below.
 // Every UI string that used to hardcode "Sean"/"Wren" now reads these instead, either
 // live (JS-generated banners/labels) or via the .dyn-campName/.dyn-wrenName spans, which
@@ -794,7 +845,7 @@ let wrenName = 'Wren';
 let firstTelegraphSeen = false;
 
 function openOptions() {
-  if (dead || activeOverlay === 'craft' || activeOverlay === 'meeting' || activeOverlay === 'merge' || activeOverlay === 'names' || activeOverlay === 'bonded' || activeOverlay === 'estranged' || activeOverlay === 'battle' || activeOverlay === 'cutscene') return;
+  if (dead || (activeOverlay && activeOverlay !== 'options')) return;
   ensureAudio();
   activeOverlay = 'options';
   paused = true;
@@ -810,7 +861,7 @@ optionsBtn.onclick = openOptions;
 resumeBtn.onclick = closeOptions;
 
 function openCraftPanel() {
-  if (dead || activeOverlay === 'options' || activeOverlay === 'meeting' || activeOverlay === 'merge' || activeOverlay === 'names' || activeOverlay === 'bonded' || activeOverlay === 'estranged' || activeOverlay === 'battle' || activeOverlay === 'cutscene') return;
+  if (dead || (activeOverlay && activeOverlay !== 'craft')) return;
   ensureAudio();
   activeOverlay = 'craft';
   paused = true;
@@ -828,6 +879,100 @@ function toggleCraftPanel() {
   if (activeOverlay === 'craft') closeCraftPanel(); else openCraftPanel();
 }
 craftCloseBtn.onclick = closeCraftPanel;
+
+function renderSliceUI() {
+  if (!sliceProgress) return;
+  sliceProgress.shelterBuilt = !!player.hasShelter;
+  sliceProgress.predatorsSurvived = stats ? stats.predatorsRepelled + stats.predatorsKilled : 0;
+  const day = currentDay();
+  const groups = Slice.taskStatus(sliceProgress, day);
+  const done = Slice.completedTaskCount(sliceProgress, day);
+  journalCountEl.textContent = done + '/' + Slice.totalTaskCount();
+
+  let currentGroup = groups.find(group => group.unlocked && group.tasks.some(task => !task.complete));
+  if (!currentGroup) currentGroup = groups.find(group => !group.unlocked) || groups[groups.length - 1];
+  const currentTask = currentGroup.tasks.find(task => !task.complete);
+  objectiveTitleEl.textContent = 'Day ' + currentGroup.day + ' · ' + currentGroup.title;
+  objectiveTaskEl.textContent = currentTask ? currentTask.label : 'All objectives complete';
+  objectiveCardEl.classList.toggle('complete', !currentTask);
+
+  if (activeOverlay === 'journal') {
+    journalObjectivesEl.innerHTML = '';
+    groups.forEach(group => {
+      const section = document.createElement('section');
+      section.className = 'journalDay' + (group.unlocked ? '' : ' locked');
+      const heading = document.createElement('h4');
+      heading.textContent = 'Day ' + group.day + ' · ' + group.title;
+      section.appendChild(heading);
+      group.tasks.forEach(task => {
+        const row = document.createElement('div');
+        row.className = 'journalTask' + (task.complete ? ' complete' : '');
+        row.textContent = (task.complete ? '✓ ' : '○ ') + task.label;
+        section.appendChild(row);
+      });
+      journalObjectivesEl.appendChild(section);
+    });
+  }
+}
+
+function openJournal() {
+  if (dead || (activeOverlay && activeOverlay !== 'journal')) return;
+  activeOverlay = 'journal';
+  paused = true;
+  renderSliceUI();
+  journalPanel.style.display = 'flex';
+}
+function closeJournal() {
+  journalPanel.style.display = 'none';
+  activeOverlay = null;
+  paused = false;
+  lastTime = performance.now();
+}
+function showSliceComplete() {
+  if (dead || activeOverlay || sliceProgress.completionShown) return;
+  sliceProgress.completionShown = true;
+  saveGame();
+  activeOverlay = 'sliceComplete';
+  paused = true;
+  const encounters = stats.predatorsKilled + stats.predatorsRepelled;
+  sliceCompleteStatsEl.textContent = 'Day ' + currentDay() + ' · Level ' + player.level + ' · ' +
+    encounters + ' predator encounter' + (encounters === 1 ? '' : 's') + ' survived';
+  sliceCompletePanel.style.display = 'flex';
+}
+function closeSliceComplete() {
+  sliceCompletePanel.style.display = 'none';
+  activeOverlay = null;
+  paused = false;
+  lastTime = performance.now();
+}
+function maybeShowSliceComplete() {
+  if (sliceProgress && Slice.isSliceComplete(sliceProgress, currentDay())) showSliceComplete();
+}
+journalBtn.onclick = openJournal;
+journalCloseBtn.onclick = closeJournal;
+sliceContinueBtn.onclick = closeSliceComplete;
+sliceJournalBtn.onclick = function() {
+  sliceCompletePanel.style.display = 'none';
+  activeOverlay = null;
+  openJournal();
+};
+idlePauseChk.onchange = function() {
+  settings.idleAutoPause = idlePauseChk.checked;
+  if (!settings.idleAutoPause) {
+    idlePaused = false;
+    lastTime = performance.now();
+  }
+};
+function syncIdlePause() {
+  const shouldPause = settings.idleAutoPause && (document.hidden || !document.hasFocus());
+  if (shouldPause !== idlePaused) {
+    idlePaused = shouldPause;
+    lastTime = performance.now();
+  }
+}
+document.addEventListener('visibilitychange', syncIdlePause);
+window.addEventListener('blur', syncIdlePause);
+window.addEventListener('focus', syncIdlePause);
 
 // The name panel gates the very start of a run (see the resetGame() call at the bottom of this
 // script) so it only ever appears once — retrying after death keeps whatever names were set.
@@ -2095,6 +2240,8 @@ window.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (activeOverlay === 'craft') closeCraftPanel();
     else if (activeOverlay === 'options') closeOptions();
+    else if (activeOverlay === 'journal') closeJournal();
+    else if (activeOverlay === 'sliceComplete') closeSliceComplete();
     else if (activeOverlay === 'meeting') resolveFirstMeeting('distance');
     else if (activeOverlay === 'merge') resolveCampsMerge();
     else if (activeOverlay === 'names') { /* no-op — must confirm names to begin */ }
@@ -2217,12 +2364,14 @@ const STARVATION_DPS = 2;
 const EAT_AMOUNT = 35;
 const MAX_COCONUTS = 3;
 const COCONUT_REGEN_MS = 30000;
-const WOOD_MAX = 2;
+const WOOD_MAX = 4;
 const WOOD_REGEN_MS = 40000;
 const INTERACT_RANGE = 62;
 
-const SPEAR_DURABILITY = 3;
-const WOOD_PER_SPEAR = 2;
+const SPEAR_DURABILITY = 5;
+const WOOD_PER_SPEAR = 1;
+const WOOD_PER_CAMP = 4;
+const REED_PER_CAMP = 2;
 const SHELL_PER_CANTEEN = 1;
 const CANTEEN_CAPACITY = 60;
 
@@ -2331,13 +2480,13 @@ const SIDE_Y0 = 260, SIDE_Y1 = 380;           // the camp<->stream horizontal pa
 const TRAIL_Y0 = 420, TRAIL_Y1 = 540;         // the stream<->Wren's camp trail, further upstream
 const EAST_PATH_X0 = 700, EAST_PATH_X1 = 790; // the beach<->jungle gap — a second, separate break in the treeline, well east of the beach<->camp path so the two never collide
 
-const WREN_HOME_X = 610, WREN_HOME_Y = 300;
+const WREN_HOME_X = 690, WREN_HOME_Y = 470;
 const WREN_FIRE_X = 330, WREN_FIRE_Y = 480; // repositioned in v0.41 to match the illustrated fire pit in bg_wrenscamp
-const WREN_WANDER_RADIUS = 70;
+const WREN_WANDER_RADIUS = 42;
 const WREN_SPEED = 42;
 const WREN_NOTICE_RANGE = 130;
 const WREN_MEET_RANGE = 60;
-const WREN_MERGED_HOME_X = 330, WREN_MERGED_HOME_Y = 230; // where she settles at Sean's Camp, once merged
+const WREN_MERGED_HOME_X = 250, WREN_MERGED_HOME_Y = 455; // open ground beside the player's shelter
 const WREN_TALK_COOLDOWN_MS = 40000;
 const TRUST_ALLY_THRESHOLD = 60;   // talking starts yielding real cooperative sharing, not just conversation
 const TRUST_MERGE_THRESHOLD = 80;  // triggers the one-time camps-merge scene
@@ -2541,6 +2690,20 @@ function spearMaxDurability() {
 
 const RECIPES = [
   {
+    id: 'camp', name: 'Establish Camp', icon: '⛺',
+    desc: 'Clear the site and raise a lean-to, fire ring, and rain catch. This creates your first true rest and save point.',
+    cost: { wood: WOOD_PER_CAMP, reed: REED_PER_CAMP },
+    canCraft: () => currentScreen === 'camp' && !player.hasShelter,
+    lockedReason: () => player.hasShelter ? 'Your camp is already established.' : (currentScreen !== 'camp' ? 'Can only be built at the inland clearing.' : null),
+    apply: () => {
+      player.hasShelter = true;
+      sliceProgress.shelterBuilt = true;
+      // Building swaps in the finished-camp geometry. If the player was standing where the
+      // shelter rises, move them to the clear ground beside it instead of trapping them inside.
+      if (terrainBlocked('camp', player.x, player.y)) { player.x = 220; player.y = 420; }
+    }
+  },
+  {
     id: 'spear', name: 'Spear', icon: '🔱',
     desc: 'Restores your spear to full durability.',
     cost: { wood: WOOD_PER_SPEAR },
@@ -2653,6 +2816,7 @@ function attemptCraft(id) {
   if (!recipe || !recipe.canCraft() || !hasResources(recipe)) return;
   for (const [key, amt] of Object.entries(recipe.cost)) inventory[key] -= amt;
   recipe.apply();
+  if (id !== 'camp') sliceProgress.crafted += 1;
   sfx.craft();
   showBanner('Crafted a ' + recipe.name + '.', 1700);
   renderCraftPanel();
@@ -2699,7 +2863,7 @@ function renderCraftPanel() {
   }
 }
 
-let player, predator, wren, trust, water, palm, gatherables, fishSpot, inventory, elapsed, encounterMsgTimer, dead, decorations, stats, currentScreen, screenData, shelter, tide, tideTimer, surge, stormTierSeen, predatorFirstSeen, areaFirstSeen;
+let player, predator, wren, trust, water, palm, gatherables, fishSpot, inventory, elapsed, encounterMsgTimer, dead, decorations, stats, currentScreen, screenData, shelter, tide, tideTimer, surge, stormTierSeen, predatorFirstSeen, areaFirstSeen, sliceProgress;
 // v0.33 — the last in-game day player leveling awarded day-survival XP for (see awardPlayerXp()'s
 // caller in updateSurvivalStats()). currentDay() deliberately keeps no state of its own (see its
 // own comment above), so this is the one place that remembers "have we already paid out for the
@@ -2710,7 +2874,7 @@ let trustTellTimer; // v0.29 fix (playtest finding #4) — mirrors encounterMsgT
 function buildScreens() {
   return {
     beach: {
-      water: { x: 250, y: 320, r: 30 },
+      water: null, // the landing beach has salt water only; fresh water is found inland
       palm: { x: 600, y: 320, coconuts: MAX_COCONUTS, regenTimer: 0 },
       gatherables: [
         { x: 220, y: 400, resource: 'wood', amount: WOOD_MAX, max: WOOD_MAX, regenTimer: 0, regenMs: WOOD_REGEN_MS, label: 'Gather Wood' },
@@ -2719,7 +2883,7 @@ function buildScreens() {
       fishSpot: null,
       decorations: [[120,470,'crate'],[820,440,'crate'],[430,300,'rock']].map(([x,y,type]) => ({x,y,type})),
       shelter: null,
-      dangerous: true, // predators can spawn here
+      dangerous: false, // landing beach: safe while the player learns movement, gathering, and crafting
       walls: { top: BEACH_TOP + PLAYER_R, bottom: H - 6 - PLAYER_R, left: PLAYER_R + 4, right: W - PLAYER_R - 4 },
       exits: [
         { edge: 'top', gapStart: PATH_X0, gapEnd: PATH_X1, gapBound: 100, trigger: 126, target: 'camp', spawn: { x: W/2, y: 510 }, msg: 'You follow the path inland to your camp.' },
@@ -2738,12 +2902,13 @@ function buildScreens() {
       water: { x: 660, y: 375, r: 24 },
       palm: null,
       gatherables: [
-        { x: 170, y: 480, resource: 'wood', amount: 1, max: 1, regenTimer: 0, regenMs: WOOD_REGEN_MS, label: 'Gather Wood' }
+        { x: 170, y: 480, resource: 'wood', amount: 3, max: 3, regenTimer: 0, regenMs: WOOD_REGEN_MS, label: 'Gather Wood' }
       ],
       fishSpot: null,
       decorations: [[140,420,'crate'],[500,550,'rock']].map(([x,y,type]) => ({x,y,type})),
-      shelter: { x: 480, y: 260, r: 46, restCooldown: 0 },
+      shelter: { x: 530, y: 400, r: 46, restCooldown: 0 },
       dangerous: false, // confirmed Safe Zone — no predators, ever. Good for practicing movement/crafting.
+      obstacles: [{ x: 335, y: 100, w: 335, h: 250, requiresShelter: true }],
       walls: { top: CAMP_TOP + PLAYER_R, bottom: H - 6 - PLAYER_R, left: PLAYER_R + 4, right: W - PLAYER_R - 4 },
       exits: [
         { edge: 'bottom', gapStart: PATH_X0, gapEnd: PATH_X1, gapBound: 596, trigger: 588, target: 'beach', spawn: { x: W/2, y: 204 }, msg: 'You head back down to the beach.' },
@@ -2752,15 +2917,16 @@ function buildScreens() {
       ]
     },
     stream: {
-      water: { x: 480, y: 330, r: 20 },
+      water: { x: 520, y: 420, r: 20 },
       palm: null,
       gatherables: [
-        { x: 600, y: 380, resource: 'reed', amount: REED_MAX, max: REED_MAX, regenTimer: 0, regenMs: REED_REGEN_MS, label: 'Gather Reeds' }
+        { x: 650, y: 455, resource: 'reed', amount: REED_MAX, max: REED_MAX, regenTimer: 0, regenMs: REED_REGEN_MS, label: 'Gather Reeds' }
       ],
-      fishSpot: { x: 480, y: 300, amount: FISH_MAX, max: FISH_MAX, regenTimer: 0 },
+      fishSpot: { x: 520, y: 390, amount: FISH_MAX, max: FISH_MAX, regenTimer: 0 },
       decorations: [[150,470,'rock'],[790,470,'rock']].map(([x,y,type]) => ({x,y,type})),
       shelter: null,
       dangerous: false, // confirmed Safe Zone — no predators, ever.
+      obstacles: [{ x: 250, y: 100, w: 490, h: 300 }],
       walls: { top: STREAM_TOP + PLAYER_R, bottom: H - 6 - PLAYER_R, left: PLAYER_R + 4, right: W - PLAYER_R - 4 },
       exits: [
         { edge: 'right', gapStart: SIDE_Y0, gapEnd: SIDE_Y1, gapBound: W - 4, trigger: W - 40, target: 'camp', spawn: { x: 220, y: 320 }, msg: 'You head back downstream toward camp.' },
@@ -2775,6 +2941,7 @@ function buildScreens() {
       decorations: [[180,500,'crate'],[280,430,'rock']].map(([x,y,type]) => ({x,y,type})),
       shelter: null,
       dangerous: false, // confirmed Safe Zone — a discovery scene, not a danger scene.
+      obstacles: [{ x: 400, y: 90, w: 365, h: 335 }],
       walls: { top: WRENCAMP_TOP + PLAYER_R, bottom: H - 6 - PLAYER_R, left: PLAYER_R + 4, right: W - PLAYER_R - 4 },
       exits: [
         { edge: 'right', gapStart: TRAIL_Y0, gapEnd: TRAIL_Y1, gapBound: W - 4, trigger: W - 40, target: 'stream', spawn: { x: 60, y: 480 }, msg: 'You head back downstream.' }
@@ -2918,6 +3085,7 @@ function goToScreen(targetId, spawn, msg) {
   const wrenWasNearby = gameMode === 'duo' && wren.met && !wren.rival && !wren.fleeingHome &&
     wren.screen === previousScreen && dist(player.x, player.y, wren.x, wren.y) < WREN_ACCOMPANY_NOTICE_RANGE;
   currentScreen = targetId;
+  sliceProgress.visited[targetId] = true;
   if (spawn) { player.x = spawn.x; player.y = spawn.y; }
   if (msg) showBanner(msg, 2000);
   if (predator.active) predator.active = false;
@@ -2963,10 +3131,12 @@ function goToScreen(targetId, spawn, msg) {
 
 function resetGame() {
   stats = { predatorsRepelled: 0, predatorsKilled: 0 };
+  sliceProgress = Slice.createProgress();
   player = {
     x: W/2, y: H - 90, health: 100, thirst: 100, hunger: 100, facing: 1,
     spearDurability: SPEAR_DURABILITY, hasCanteen: false, canteenWater: 0,
     spearUpgraded: false, spearReinforced: false, spearMastered: false, hasPeltCloak: false, hasRaft: false,
+    hasShelter: false,
     // v0.32 — true only for the round just chosen inside the battle scene. v0.45: no longer a flat
     // damage halving — Defend now "braces" the very next dodge-meter roll, widening the dodge zone
     // and shrinking the miss zone in the player's favor for that one turn, then clearing. See
@@ -3061,6 +3231,8 @@ function resetGame() {
   interactRequested = false;
   bannerEl.style.opacity = 0;
   deathScreen.style.display = 'none';
+  journalPanel.style.display = 'none';
+  sliceCompletePanel.style.display = 'none';
   if (activeOverlay === 'craft') closeCraftPanel();
   else if (activeOverlay === 'options') closeOptions();
   else if (activeOverlay === 'meeting') { activeOverlay = null; paused = false; meetingPanel.style.display = 'none'; }
@@ -3068,6 +3240,8 @@ function resetGame() {
   else if (activeOverlay === 'bonded') { activeOverlay = null; paused = false; bondedPanel.style.display = 'none'; }
   else if (activeOverlay === 'estranged') { activeOverlay = null; paused = false; estrangedPanel.style.display = 'none'; }
   else if (activeOverlay === 'battle') { activeOverlay = null; paused = false; battlePanel.style.display = 'none'; }
+  else if (activeOverlay === 'journal' || activeOverlay === 'sliceComplete') { activeOverlay = null; paused = false; }
+  renderSliceUI();
   joyReset();
   lastTime = performance.now();
   requestAnimationFrame(loop);
@@ -3154,10 +3328,10 @@ function getInteractContext() {
       return { type: 'talk_wren', label: 'Talk to ' + wrenName };
     }
   }
-  if (shelter && player.health < 100 && shelter.restCooldown <= 0 && dist(player.x, player.y, shelter.x, shelter.y) < INTERACT_RANGE + 8) {
+  if (shelter && player.hasShelter && shelter.restCooldown <= 0 && dist(player.x, player.y, shelter.x, shelter.y) < INTERACT_RANGE + 8) {
     return { type: 'rest', label: 'Rest' };
   }
-  if (water && dist(player.x, player.y, water.x, water.y) < INTERACT_RANGE) {
+  if (water && !(currentScreen === 'camp' && !player.hasShelter) && dist(player.x, player.y, water.x, water.y) < INTERACT_RANGE) {
     if (player.thirst < 99) return { type: 'water', label: 'Drink' };
     if (player.hasCanteen && player.canteenWater < CANTEEN_CAPACITY) return { type: 'fill_canteen', label: 'Fill Canteen' };
   }
@@ -3421,6 +3595,7 @@ function processInteract() {
   } else if (c.type === 'rest') {
     player.health = Math.min(100, player.health + REST_HEAL_AMOUNT);
     shelter.restCooldown = player.hasPeltCloak ? REST_COOLDOWN_MS * PELT_CLOAK_REST_MULT : REST_COOLDOWN_MS;
+    sliceProgress.rested += 1;
     sfx.rest();
     saveGame(); // v0.34 — autosave: a shelter rest (no-op outside Continue mode)
     showBanner('You rest in the lean-to. Health restored.' + (player.hasPeltCloak ? ' The pelt cloak keeps the chill off — you\'ll be ready again sooner.' : ''), 1900);
@@ -3429,6 +3604,7 @@ function processInteract() {
     // always-full water restore, so a run is never unwinnable purely on thirst. Scarcity lives
     // in everything else (canteen, tablets, food), not in the open water itself.
     player.thirst = 100;
+    sliceProgress.drankFreshWater = true;
     sfx.drink();
     showBanner('You drink deeply. Thirst restored.', 1700);
   } else if (c.type === 'fill_canteen') {
@@ -3449,6 +3625,7 @@ function processInteract() {
       const alreadyStocked = (inventory[c.pile.resource] || 0) >= ISLAND_TRUST_OVERHARVEST_STOCKPILE_THRESHOLD;
       c.pile.amount -= 1;
       inventory[c.pile.resource] = (inventory[c.pile.resource] || 0) + 1;
+      sliceProgress.gathered += 1;
       if (alreadyStocked) { adjustIslandTrust(-ISLAND_TRUST_OVERHARVEST_PENALTY); flashIslandTrustTell(); }
       const bonus = islandTrustFavoredBonus();
       if (bonus) inventory[c.pile.resource] += bonus;
@@ -3464,6 +3641,7 @@ function processInteract() {
     const alreadyStocked = (inventory.fish || 0) >= ISLAND_TRUST_OVERHARVEST_STOCKPILE_THRESHOLD;
     fishSpot.amount -= 1;
     inventory.fish += 1;
+    sliceProgress.gathered += 1;
     if (alreadyStocked) { adjustIslandTrust(-ISLAND_TRUST_OVERHARVEST_PENALTY); flashIslandTrustTell(); }
     const fishBonus = islandTrustFavoredBonus();
     if (fishBonus) inventory.fish += fishBonus;
@@ -3475,6 +3653,7 @@ function processInteract() {
     const alreadyStocked = (inventory.coconut || 0) >= ISLAND_TRUST_OVERHARVEST_STOCKPILE_THRESHOLD;
     palm.coconuts -= 1;
     inventory.coconut += 1;
+    sliceProgress.gathered += 1;
     if (alreadyStocked) { adjustIslandTrust(-ISLAND_TRUST_OVERHARVEST_PENALTY); flashIslandTrustTell(); }
     const coconutBonus = islandTrustFavoredBonus();
     if (coconutBonus) inventory.coconut += coconutBonus;
@@ -3841,8 +4020,7 @@ function updateSurvivalStats(dt) {
       const dHome = dist(wren.x, wren.y, wren.homeX, wren.homeY);
       if (dHome > WREN_HOME_ARRIVAL_RADIUS) {
         const hx = (wren.homeX - wren.x) / dHome, hy = (wren.homeY - wren.y) / dHome;
-        wren.x += hx * WREN_FLEE_TRAVEL_SPEED * dt;
-        wren.y += hy * WREN_FLEE_TRAVEL_SPEED * dt;
+        moveWren(hx, hy, WREN_FLEE_TRAVEL_SPEED, dt);
       } else {
         wren.fleeingHome = false; // arrived and settled — healing can begin
       }
@@ -4205,7 +4383,7 @@ function loop(now) {
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
   currentTrackId = currentTrackFor(); // music mood tracks the moment even while paused
-  if (!dead && !paused) {
+  if (!dead && !paused && !idlePaused) {
     elapsed += dt;
     updateTide(dt);
     updateSurge(dt);
@@ -4217,6 +4395,7 @@ function loop(now) {
     if (!dead && screenData[currentScreen].dangerous) updatePredator(dt);
     if (gameMode === 'duo' && !dead && currentScreen === wren.screen) updateWren(dt);
     updateHud();
+    maybeShowSliceComplete();
   }
   draw();
   requestAnimationFrame(loop);
@@ -4243,6 +4422,23 @@ function resolveBounds(screenId, px, py) {
     }
   }
   return { top, bottom, left, right, triggered };
+}
+
+function terrainBlocked(screenId, x, y, radius = PLAYER_R) {
+  const obstacles = screenData[screenId].obstacles || [];
+  return obstacles.some(o => (!o.requiresShelter || player.hasShelter) &&
+    x > o.x - radius && x < o.x + o.w + radius &&
+    y > o.y - radius && y < o.y + o.h + radius
+  );
+}
+
+// Try the full step first, then each axis independently. The axis fallback makes characters
+// slide around foliage and shelters instead of snagging or walking across the artwork.
+function terrainMove(screenId, oldX, oldY, nextX, nextY, radius = PLAYER_R) {
+  if (!terrainBlocked(screenId, nextX, nextY, radius)) return { x: nextX, y: nextY };
+  if (!terrainBlocked(screenId, nextX, oldY, radius)) return { x: nextX, y: oldY };
+  if (!terrainBlocked(screenId, oldX, nextY, radius)) return { x: oldX, y: nextY };
+  return { x: oldX, y: oldY };
 }
 
 function updatePlayer(dt) {
@@ -4272,8 +4468,14 @@ function updatePlayer(dt) {
   const baseStormMult = (surge.active === 'storm' && surge.stormTier) ? STORM_TIERS[surge.stormTier].speedMult : STORM_SPEED_MULT;
   const stormPenalty = (1 - baseStormMult) * islandTrustSurgeSeverityMult();
   const stormSpeedMult = surge.active === 'storm' ? Math.max(0.15, 1 - stormPenalty) : 1;
-  player.x += dx * PLAYER_SPEED * stormSpeedMult * dt;
-  player.y += dy * PLAYER_SPEED * stormSpeedMult * dt;
+  const oldX = player.x, oldY = player.y;
+  const moved = terrainMove(
+    currentScreen, oldX, oldY,
+    oldX + dx * PLAYER_SPEED * stormSpeedMult * dt,
+    oldY + dy * PLAYER_SPEED * stormSpeedMult * dt
+  );
+  player.x = moved.x;
+  player.y = moved.y;
 
   const b = resolveBounds(currentScreen, player.x, player.y);
   player.x = Math.max(b.left, Math.min(b.right, player.x));
@@ -5049,6 +5251,12 @@ function goHunting() {
 // a simple wander around her own fire, and she notices you and turns to watch if you
 // get close, instead of a fixed idle animation. That reactivity is the whole point of
 // this pass — the actual meeting scene comes later.
+function moveWren(dx, dy, speed, dt) {
+  const moved = terrainMove(wren.screen, wren.x, wren.y, wren.x + dx * speed * dt, wren.y + dy * speed * dt, 12);
+  wren.x = moved.x;
+  wren.y = moved.y;
+}
+
 function updateWren(dt) {
   // v0.26 — while fleeing home hurt, her movement is driven entirely by updateSurvivalStats()
   // (deliberately decoupled from whether the player happens to be on her screen to watch — see
@@ -5070,8 +5278,7 @@ function updateWren(dt) {
     if (d > 6) {
       const dx = followX - wren.x, dy = followY - wren.y;
       wren.facing = dx >= 0 ? 1 : -1;
-      wren.x += (dx / d) * WREN_SPEED * 1.5 * dt;
-      wren.y += (dy / d) * WREN_SPEED * 1.5 * dt;
+      moveWren(dx / d, dy / d, WREN_SPEED * 1.5, dt);
     }
     return;
   }
@@ -5084,8 +5291,7 @@ function updateWren(dt) {
     let dx = wren.x - player.x, dy = wren.y - player.y;
     const away = Math.hypot(dx, dy) || 1;
     wren.facing = dx >= 0 ? 1 : -1;
-    wren.x += (dx / away) * WREN_SPEED * WREN_AVOID_SPEED_MULT * dt;
-    wren.y += (dy / away) * WREN_SPEED * WREN_AVOID_SPEED_MULT * dt;
+    moveWren(dx / away, dy / away, WREN_SPEED * WREN_AVOID_SPEED_MULT, dt);
     const fromHome = dist(wren.x, wren.y, wren.homeX, wren.homeY);
     const maxFlee = WREN_WANDER_RADIUS * 2.2;
     if (fromHome > maxFlee) {
@@ -5116,8 +5322,7 @@ function updateWren(dt) {
     const dx = wren.targetX - wren.x, dy = wren.targetY - wren.y;
     const d = Math.hypot(dx, dy);
     wren.facing = dx >= 0 ? 1 : -1;
-    wren.x += (dx / d) * WREN_SPEED * dt;
-    wren.y += (dy / d) * WREN_SPEED * dt;
+    moveWren(dx / d, dy / d, WREN_SPEED, dt);
   }
 }
 
@@ -5131,10 +5336,11 @@ function updateWren(dt) {
 // "progress": the player (health/thirst/hunger/position/gear/level/XP on both tracks), the full
 // inventory, current screen, day count and elapsed time, Wren's trust and relationship milestones,
 // the hidden islandTrust stat, run stats, and the run's own name/mode/difficulty/tone settings.
-const SAVE_KEY = 'crashBeachSave_v1';
+const SAVE_KEY = 'crashBeachSave_v2';
+const LEGACY_SAVE_KEY = 'crashBeachSave_v1';
 function serializeGame() {
   return {
-    v: 1,
+    v: Slice.SAVE_SCHEMA_VERSION,
     savedAt: Date.now(),
     playerName, wrenName, gameMode, gameDifficulty, contentTier, gameSaveMode,
     player: Object.assign({}, player),
@@ -5148,7 +5354,8 @@ function serializeGame() {
       met: wren.met, merged: wren.merged, rival: wren.rival, bonded: wren.bonded,
       estrangedSeen: wren.estrangedSeen, health: wren.health, screen: wren.screen
     },
-    firstTelegraphSeen
+    firstTelegraphSeen,
+    sliceProgress: Slice.normalizeProgress(sliceProgress)
   };
 }
 function saveGame() {
@@ -5158,15 +5365,15 @@ function saveGame() {
 }
 function getSavedGame() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem(LEGACY_SAVE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
+    const parsed = Slice.migrateSave(JSON.parse(raw));
     if (parsed && parsed.player && parsed.inventory) return parsed;
   } catch (e) { /* corrupt/unavailable — treat as no save on record */ }
   return null;
 }
 function clearSavedGame() {
-  try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* best-effort only */ }
+  try { localStorage.removeItem(SAVE_KEY); localStorage.removeItem(LEGACY_SAVE_KEY); } catch (e) { /* best-effort only */ }
 }
 // Restores a save on top of a freshly reset world: resetGame() first establishes a clean baseline
 // (using the save's own name/mode/difficulty/tone) for everything the save deliberately doesn't
@@ -5191,10 +5398,14 @@ function loadGame(save) {
   if (save.stats) Object.assign(stats, save.stats);
   if (save.wren) Object.assign(wren, save.wren);
   if (typeof save.firstTelegraphSeen === 'boolean') firstTelegraphSeen = save.firstTelegraphSeen;
+  sliceProgress = Slice.normalizeProgress(save.sliceProgress);
+  player.hasShelter = !!(player.hasShelter || sliceProgress.shelterBuilt);
+  sliceProgress.shelterBuilt = player.hasShelter;
   renderModeRows(); renderDifficultyRows(); renderToneRows(); renderSaveModeRows();
   document.querySelectorAll('.dyn-campName').forEach(el => { el.textContent = playerName + "'s Camp"; });
   document.querySelectorAll('.dyn-wrenName').forEach(el => { el.textContent = wrenName; });
   updateHud();
+  renderSliceUI();
 }
 function saveSummaryLine(save) {
   const mins = Math.floor(save.elapsed / 60), secs = Math.floor(save.elapsed % 60);
@@ -5211,6 +5422,7 @@ function manualSave() {
   if (dead || activeOverlay) return;
   if (gameSaveMode !== 'continue') { showBanner('Manual save is only available in Continue mode.', 1800); return; }
   if (currentScreen !== 'camp') { showBanner('You can only save at your camp.', 1800); return; }
+  if (!player.hasShelter) { showBanner('Establish your camp before saving.', 1800); return; }
   saveGame();
   sfx.craft();
   showBanner('Progress saved.', 1500);
@@ -5393,6 +5605,7 @@ function updateHud() {
   const tidePart = currentScreen === 'lowtide' ? (tide === 'low' ? ' · Low Tide' : ' · High Tide') : '';
   locationTagEl.textContent = (LOCATION_NAMES[currentScreen] || '') + (isSafe ? ' · Safe Zone' : '') + tidePart;
   locationTagEl.classList.toggle('safe', isSafe);
+  renderSliceUI();
 
   // v0.27 — Surge indicator: visible any time surge.active is set, regardless of screen (unlike
   // the tide part above, a surge is a global event, not something scoped to one place) — a
@@ -5424,7 +5637,7 @@ function updateHud() {
   if (huntAvailable()) huntBtn.classList.add('active'); else huntBtn.classList.remove('active');
   huntBtn.textContent = (predator.active && predator.fromHunt) ? 'HUNTING' : 'HUNT';
   // v0.34 — dimmed the same way craftBtn/huntBtn are when not currently usable.
-  if (gameSaveMode === 'continue' && currentScreen === 'camp' && !dead) saveBtn.classList.add('active');
+  if (gameSaveMode === 'continue' && currentScreen === 'camp' && player.hasShelter && !dead) saveBtn.classList.add('active');
   else saveBtn.classList.remove('active');
 }
 
@@ -5453,13 +5666,13 @@ function draw() {
   // fallback: bg_camp/bg_wrenscamp already paint a lean-to and a fire pit in place, so drawing
   // the old shapes on top once the art is ready would just duplicate them.
   if (currentScreen === 'camp') {
-    if (!spriteReady('bg_camp')) { drawShelter(theme); drawCampfire(450, 330); }
+    if (player.hasShelter && !spriteReady('bg_camp')) { drawShelter(theme); drawCampfire(450, 330); }
   }
   if (currentScreen === 'wrenscamp') {
     if (!spriteReady('bg_wrenscamp')) { drawWrenLeanTo(); drawCampfire(WREN_FIRE_X, WREN_FIRE_Y); }
   }
   if (fishSpot) drawFishSpot();
-  if (water) drawWater();
+  if (water && !(currentScreen === 'camp' && !player.hasShelter)) drawWater();
   if (palm) drawPalm();
   for (const p of gatherables) drawGatherable(p);
   if (screenData[currentScreen].dangerous && predator.active) drawPredator();
@@ -5649,7 +5862,9 @@ function drawBeachBackground(theme) {
 }
 
 function drawCampBackground(theme) {
-  if (spriteReady('bg_camp')) { ctx.drawImage(SPRITES.bg_camp, 0, 0, W, H); return; }
+  // Before the player establishes camp, use the open-clearing scene. The illustrated camp art
+  // contains a finished shelter, so it only becomes visible after that shelter is actually built.
+  if (player.hasShelter && spriteReady('bg_camp')) { ctx.drawImage(SPRITES.bg_camp, 0, 0, W, H); return; }
   ctx.fillStyle = theme.leaf;
   ctx.fillRect(0, 0, W, H);
   const dirtGrad = ctx.createLinearGradient(0, CAMP_TOP, 0, H);

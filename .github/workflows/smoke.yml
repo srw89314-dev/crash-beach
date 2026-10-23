@@ -16,3 +16,5 @@ jobs:
           node-version: '22'
       - name: Run structural smoke checks
         run: node tests/smoke.mjs
+      - name: Run vertical-slice behavior checks
+        run: node tests/vertical-slice.test.cjs

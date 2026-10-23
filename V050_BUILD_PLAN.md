@@ -1,5 +1,9 @@
 # Crash Beach v0.50 — The Polish Era
 
+## 2026-10-22 release-scope decision
+
+The v0.50 launch candidate is desktop-only. Phone/tablet acceptance and the broader camera, map, and full visual-language overhaul remain later work. For this release, “vertical slice” means a complete, representative opening arc: nine objectives across the first three in-game days, a clear completion state, safe save migration, idle auto-pause, release-facing onboarding, and a tested itch.io package. The existing open-ended systems remain available after completion.
+
 ## Mission
 Build a polished Days 1–3 vertical slice that establishes the production standard for the rest of Crash Beach while preserving the working v0.45 gameplay foundation.
 
